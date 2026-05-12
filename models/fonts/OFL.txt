@@ -1,0 +1,16 @@
+Les polices suivantes sont distribuées sous SIL Open Font License 1.1
+(https://scripts.sil.org/OFL) :
+
+- Cormorant Garamond (Catharsis Fonts) — cormorant_italic.ttf
+  Copyright 2015 The Cormorant Project Authors
+  https://github.com/CatharsisFonts/Cormorant
+
+- EB Garamond (Georg Duffner, Octavio Pardo) — eb_garamond.ttf
+  Copyright 2017 The EB Garamond Project Authors
+  https://github.com/octaviopardo/EBGaramond12
+
+- Space Mono (Colophon Foundry) — space_mono.ttf
+  Copyright 2016 The Space Mono Project Authors
+  https://github.com/googlefonts/spacemono
+
+Texte intégral de la licence : https://scripts.sil.org/OFL

@@ -1,0 +1,43 @@
+{
+  "//": "Configuration Claude Desktop / Claude Code pour brancher FACE.ai.",
+  "//": "Choisir UN des deux blocs selon le mode souhaité (SSE ou stdio).",
+
+  "_mode_sse_recommande": {
+    "description": "Le serveur MCP tourne en service Docker, accessible via SSE. Idéal en LAN/Tailscale.",
+    "claude_desktop_block": {
+      "mcpServers": {
+        "face-ai": {
+          "type": "sse",
+          "url": "http://127.0.0.1:8011/sse"
+        }
+      }
+    },
+    "via_tailscale": {
+      "mcpServers": {
+        "face-ai": {
+          "type": "sse",
+          "url": "http://100.x.x.x:8011/sse"
+        }
+      }
+    }
+  },
+
+  "_mode_stdio": {
+    "description": "Claude Desktop lance lui-même un processus Python via docker exec. Pas besoin du service mcp dans compose.",
+    "claude_desktop_block": {
+      "mcpServers": {
+        "face-ai": {
+          "command": "docker",
+          "args": [
+            "exec",
+            "-i",
+            "faceai-api-1",
+            "python",
+            "face_ai_mcp_server.py",
+            "--stdio"
+          ]
+        }
+      }
+    }
+  }
+}

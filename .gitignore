@@ -1,0 +1,40 @@
+.env
+.DS_Store
+
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Données et artefacts (volumes bind-mountés)
+data/
+static/originals/
+static/aligned/
+static/exports/
+
+# Modèles ML lourds — téléchargés au premier appel
+models/*
+# Exception : polices OFL 1.1 (redistribuables, ~1.6 MB)
+!models/fonts/
+!models/fonts/**
+
+# SQLite locks
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Frontend (P3)
+node_modules/
+dist/
+.vite/
+
+# Workspace local Claude Code
+.claude/
+
+# IDE
+.vscode/
+.idea/

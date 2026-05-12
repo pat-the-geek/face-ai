@@ -1,0 +1,76 @@
+services:
+
+  api:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    volumes:
+      - ./backend:/app
+      - ./data:/data
+      - ./static:/static
+      - ./models:/models
+    environment:
+      - FACE_AI_DB=/data/face_ai.db
+      - FACE_AI_STATIC=/static
+      - ENV=development
+      # DDG picker activé (cf. CLAUDE.md §1.5 — élargit le périmètre
+      # hors WUDD, ingestion par validation manuelle dans l'UI)
+      - FACE_AI_ENABLE_DDG=true
+    ports:
+      - "127.0.0.1:8010:8000"
+    command: >
+      sh -c "alembic upgrade head &&
+             uvicorn api:app --host 0.0.0.0 --port 8000 --reload"
+
+  worker:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    volumes:
+      - ./backend:/app
+      - ./data:/data
+      - ./static:/static
+      - ./models:/models
+      - ./models/insightface_home:/root/.insightface
+    environment:
+      - FACE_AI_DB=/data/face_ai.db
+      - FACE_AI_STATIC=/static
+    command: python worker.py
+    depends_on:
+      - api
+
+  mcp:
+    build:
+      context: .
+      dockerfile: docker/backend.Dockerfile
+    volumes:
+      - ./backend:/app
+      - ./data:/data
+      - ./static:/static
+      - ./models:/models
+    environment:
+      - FACE_AI_DB=/data/face_ai.db
+      - FACE_AI_STATIC=/static
+    ports:
+      - "127.0.0.1:8011:8001"
+    command: python face_ai_mcp_server.py
+    depends_on:
+      - api
+
+  frontend:
+    build:
+      context: .
+      dockerfile: docker/frontend.Dockerfile
+      target: dev
+    volumes:
+      - ./frontend/src:/app/src
+      - ./frontend/index.html:/app/index.html
+      - ./frontend/vite.config.js:/app/vite.config.js
+      - ./frontend/tailwind.config.js:/app/tailwind.config.js
+      - ./frontend/postcss.config.js:/app/postcss.config.js
+    environment:
+      - VITE_API_TARGET=http://api:8000
+    ports:
+      - "127.0.0.1:5173:5173"
+    depends_on:
+      - api
