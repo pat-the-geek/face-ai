@@ -19,8 +19,6 @@ intérêt légitime (RGPD art. 6.1.f, nLPD CH art. 31). Voir
 
 ## Aperçu
 
-![Export composite Sam Altman](docs/screenshots/face_ai_altman_export.jpg)
-
 | Bloc | Stack |
 |---|---|
 | Backend API | FastAPI + SQLAlchemy + SQLite + Alembic |
