@@ -49,22 +49,22 @@ export default function FlipbookOverlay({ controller }) {
       style={{
         background: `radial-gradient(ellipse 80% 60% at 50% 50%,
             hsl(var(--ambient-hue) calc(var(--ambient-sat) * 0.3%) 8%),
-            #080808 70%)`,
-        color: "#e8e4de",
+            var(--immersive-bg) 70%)`,
+        color: "var(--immersive-text-primary)",
       }}
       onClick={(e) => {
         if (e.target === e.currentTarget) controller.close();
       }}
     >
       {/* Compteur */}
-      <div className="absolute top-6 right-8 font-mono text-xs text-[#5a5550]">
+      <div className="absolute top-6 right-8 font-mono text-xs text-[var(--immersive-text-muted)]">
         {controller.currentIdx + 1} / {controller.total}
       </div>
 
       {/* Close */}
       <button
         onClick={controller.close}
-        className="absolute top-6 left-8 font-mono text-xs text-[#5a5550] hover:text-[#e8e4de] transition-colors"
+        className="absolute top-6 left-8 font-mono text-xs text-[var(--immersive-text-muted)] hover:text-[var(--immersive-text-primary)] transition-colors"
         aria-label="Fermer le Flipbook (Échap)"
       >
         ✕ Échap
@@ -76,8 +76,8 @@ export default function FlipbookOverlay({ controller }) {
           onClick={() => controller.setAutoPlay(!controller.autoPlay)}
           className={
             controller.autoPlay
-              ? "text-[#c8102e]"
-              : "text-[#5a5550] hover:text-[#e8e4de] transition-colors"
+              ? "text-accent"
+              : "text-[var(--immersive-text-muted)] hover:text-[var(--immersive-text-primary)] transition-colors"
           }
         >
           {controller.autoPlay ? "❚❚" : "▶"} Auto
@@ -88,41 +88,41 @@ export default function FlipbookOverlay({ controller }) {
             onClick={() => controller.setFps(s)}
             className={
               controller.fps === s
-                ? "text-[#e8e4de]"
-                : "text-[#5a5550] hover:text-[#e8e4de] transition-colors"
+                ? "text-[var(--immersive-text-primary)]"
+                : "text-[var(--immersive-text-muted)] hover:text-[var(--immersive-text-primary)] transition-colors"
             }
           >
             {s} fps
           </button>
         ))}
-        <span className="mx-2 text-[#3a3530]">|</span>
+        <span className="mx-2 text-[var(--immersive-separator)]">|</span>
         <button
           onClick={() => controller.setComposite(!controller.composite)}
           className={
             controller.composite
-              ? "text-[#e8e4de]"
-              : "text-[#5a5550] hover:text-[#e8e4de] transition-colors"
+              ? "text-[var(--immersive-text-primary)]"
+              : "text-[var(--immersive-text-muted)] hover:text-[var(--immersive-text-primary)] transition-colors"
           }
           title="Crossfade long pour effet composite (Galton)"
         >
           ◉ Composite
         </button>
-        <span className="mx-2 text-[#3a3530]">|</span>
+        <span className="mx-2 text-[var(--immersive-separator)]">|</span>
         <button
           onClick={() => setShowLandmarks((v) => !v)}
           className={
             showLandmarks
-              ? "text-[#e8e4de]"
-              : "text-[#5a5550] hover:text-[#e8e4de] transition-colors"
+              ? "text-[var(--immersive-text-primary)]"
+              : "text-[var(--immersive-text-muted)] hover:text-[var(--immersive-text-primary)] transition-colors"
           }
           title="Overlay landmarks faciaux (touche L)"
         >
           ⊕ Landmarks · L
         </button>
-        <span className="mx-2 text-[#3a3530]">|</span>
+        <span className="mx-2 text-[var(--immersive-separator)]">|</span>
         <button
           onClick={() => setShowSource(true)}
-          className="text-[#5a5550] hover:text-[#e8e4de] transition-colors"
+          className="text-[var(--immersive-text-muted)] hover:text-[var(--immersive-text-primary)] transition-colors"
           title="Voir l'image source pleine résolution (touche S)"
         >
           🔍 Source · S
@@ -132,7 +132,7 @@ export default function FlipbookOverlay({ controller }) {
       {/* Flèche gauche */}
       <button
         onClick={controller.prev}
-        className="absolute left-2 top-1/2 -translate-y-1/2 text-[#5a5550] hover:text-[#e8e4de] text-6xl font-thin opacity-40 hover:opacity-100 transition-opacity p-6"
+        className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--immersive-text-muted)] hover:text-[var(--immersive-text-primary)] text-6xl font-thin opacity-40 hover:opacity-100 transition-opacity p-6"
         aria-label="Image précédente (←)"
       >
         ‹
@@ -162,7 +162,7 @@ export default function FlipbookOverlay({ controller }) {
       {/* Flèche droite */}
       <button
         onClick={controller.next}
-        className="absolute right-2 top-1/2 -translate-y-1/2 text-[#5a5550] hover:text-[#e8e4de] text-6xl font-thin opacity-40 hover:opacity-100 transition-opacity p-6"
+        className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--immersive-text-muted)] hover:text-[var(--immersive-text-primary)] text-6xl font-thin opacity-40 hover:opacity-100 transition-opacity p-6"
         aria-label="Image suivante (→)"
       >
         ›
@@ -173,16 +173,16 @@ export default function FlipbookOverlay({ controller }) {
         className="absolute bottom-0 left-0 right-0 px-8 py-4 text-xs font-mono"
         style={{
           background:
-            "hsl(var(--ambient-hue) calc(var(--ambient-sat) * 0.2%) 10% / 0.9)",
+            "var(--immersive-bg-meta)",
         }}
       >
         <div className="flex justify-between gap-8 items-start">
           <div className="flex-1 min-w-0">
             {current.caption && (
-              <p className="text-[#e8e4de] truncate">{current.caption}</p>
+              <p className="text-[var(--immersive-text-primary)] truncate">{current.caption}</p>
             )}
             {current.copyright && (
-              <p className="text-[#5a5550] mt-1 truncate">
+              <p className="text-[var(--immersive-text-muted)] mt-1 truncate">
                 {current.copyright}
               </p>
             )}
@@ -193,21 +193,21 @@ export default function FlipbookOverlay({ controller }) {
                 href={current.article.url}
                 target="_blank"
                 rel="noreferrer"
-                className="text-[#5a5550] hover:text-[#e8e4de] transition-colors"
+                className="text-[var(--immersive-text-muted)] hover:text-[var(--immersive-text-primary)] transition-colors"
               >
                 → article
               </a>
             )}
             <button
               onClick={() => navigator.clipboard?.writeText(current.source_url)}
-              className="text-[#5a5550] hover:text-[#e8e4de] transition-colors"
+              className="text-[var(--immersive-text-muted)] hover:text-[var(--immersive-text-primary)] transition-colors"
             >
               copier URL
             </button>
             <a
               href={current.source_url}
               download
-              className="text-[#5a5550] hover:text-[#e8e4de] transition-colors"
+              className="text-[var(--immersive-text-muted)] hover:text-[var(--immersive-text-primary)] transition-colors"
             >
               dl original
             </a>
@@ -215,7 +215,7 @@ export default function FlipbookOverlay({ controller }) {
               <a
                 href={current.aligned_url}
                 download
-                className="text-[#5a5550] hover:text-[#e8e4de] transition-colors"
+                className="text-[var(--immersive-text-muted)] hover:text-[var(--immersive-text-primary)] transition-colors"
               >
                 dl aligné
               </a>

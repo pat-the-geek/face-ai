@@ -37,6 +37,7 @@
   --text-primary: #1a1814;
   --text-secondary: #8a8278;
   --accent: #c8102e;
+  --color-warning: #d97706;
 
   /* Transition utilisée à la fois sur body (fond global) et sur tout élément
      qui change avec l'ambient. 600 ms = perception fluide, pas distrayant. */
@@ -82,16 +83,42 @@ body,
   transition: box-shadow var(--transition-ambient);
 }
 
+/* Mode sombre — palette neutre tiède (cf. useColorMode DARK_PALETTE) */
+[data-color-mode="dark"] {
+  --color-warning: #f59e0b;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Palette immersive — toujours sombre, indépendante du toggle light/dark.
+   Utilisée par FlipbookOverlay, SplitFlipbookOverlay, SourceLightbox.
+   ───────────────────────────────────────────────────────────── */
+:root {
+  --immersive-bg:           #080808;
+  --immersive-bg-meta:      hsl(var(--ambient-hue, 0) 20% 10% / 0.9);
+  --immersive-text-primary: #e8e4de;
+  --immersive-text-muted:   #5a5550;
+  --immersive-separator:    #3a3530;
+}
+
+/* ─────────────────────────────────────────────────────────────
+   Palette de marque commune écosystème (face-ai · WUDD.ai · be.CLEAR)
+   ───────────────────────────────────────────────────────────── */
+:root {
+  --brand-neutral-dark:  #1a1814;   /* aligné avec --text-primary */
+  --brand-neutral-light: #f6f2ea;
+  --brand-accent-cool:   #007AFF;   /* famille analytique (face-ai + WUDD.ai) */
+  --brand-success:       #3fb950;
+  --brand-danger:        #FF3B30;
+}
+
 /* Filets fins, jamais de blocs colorés */
 .divider {
   border-color: var(--border);
 }
 
-/* Classe historique conservée pour rétro-compatibilité avec les composants
-   existants (GalleryHeader, EntityRow, AuditPanel…) sans refacto.
-   Nouveau rendu : sans-serif système avec poids léger pour conserver une
-   présence visuelle distinctive sur les noms d'entités. */
-.font-display-italic {
+/* Titres d'entités et noms propres — sans-serif système, poids léger.
+   Anciennement .font-display-italic (Cormorant Garamond abandonné en §10). */
+.font-display {
   font-family: inherit;
   font-weight: 300;
   font-style: normal;

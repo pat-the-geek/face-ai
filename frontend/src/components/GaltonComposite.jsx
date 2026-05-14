@@ -111,7 +111,7 @@ export default function GaltonComposite({
       >
         <header className="flex items-baseline justify-between mb-4">
           <div>
-            <div className="font-display-italic text-3xl">Composite Galton</div>
+            <div className="font-display text-3xl">Composite Galton</div>
             <div className="mt-1 text-xs font-mono text-[var(--text-secondary)]">
               {validImages.length} portraits superposés
               {entitySlug && ` · ${entitySlug}`}
@@ -119,7 +119,7 @@ export default function GaltonComposite({
           </div>
           <button
             onClick={onClose}
-            className="text-xs font-mono uppercase tracking-wider text-[var(--text-secondary)] hover:text-[var(--accent)]"
+            className="text-xs font-mono uppercase tracking-wider text-[var(--text-secondary)] hover:text-accent"
           >
             ✕ Fermer
           </button>
@@ -142,7 +142,7 @@ export default function GaltonComposite({
         )}
 
         {error && (
-          <div className="text-xs font-mono text-[var(--accent)] mb-3">
+          <div className="text-xs font-mono text-accent mb-3">
             erreur : {error}
           </div>
         )}
@@ -154,7 +154,7 @@ export default function GaltonComposite({
               onClick={() => setMode("auto")}
               className={`px-2 py-0.5 border ${
                 mode === "auto"
-                  ? "border-[var(--accent)] text-[var(--accent)]"
+                  ? "border-accent text-accent"
                   : "divider text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               }`}
               title="1/N — moyenne arithmétique stricte"
@@ -165,7 +165,7 @@ export default function GaltonComposite({
               onClick={() => setMode("graduated")}
               className={`px-2 py-0.5 border ${
                 mode === "graduated"
-                  ? "border-[var(--accent)] text-[var(--accent)]"
+                  ? "border-accent text-accent"
                   : "divider text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               }`}
               title="Décroissance linéaire 1.0 → 0.1 — accentue les 1ers"
@@ -176,7 +176,7 @@ export default function GaltonComposite({
           <button
             onClick={onExport}
             disabled={progress === 0 || progress < validImages.length}
-            className="px-3 py-1 border border-[var(--accent)] text-[var(--accent)] uppercase tracking-wider text-xs disabled:opacity-40"
+            className="px-3 py-1 border border-accent text-accent uppercase tracking-wider text-xs disabled:opacity-40"
           >
             ⤓ Exporter PNG
           </button>

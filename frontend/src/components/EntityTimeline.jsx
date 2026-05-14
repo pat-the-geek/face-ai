@@ -167,9 +167,8 @@ function buildGrid(data) {
 
 function fillForIntensity(i, hasActivity) {
   if (!hasActivity) return "var(--bg-secondary)";
-  // 5 paliers : 0.2 / 0.4 / 0.6 / 0.8 / 1.0 d'opacité de var(--accent)
-  // sur le fond. On utilise rgba pour pas devoir résoudre var.
-  // Lecture du couleur accent : on bake juste l'opacité.
+  const accentColor = getComputedStyle(document.documentElement)
+    .getPropertyValue("--accent").trim();
   const opacity = Math.max(0.18, Math.min(1, i));
-  return `rgb(200 16 46 / ${opacity})`; // --accent = #c8102e
+  return `color-mix(in srgb, ${accentColor} ${Math.round(opacity * 100)}%, transparent)`;
 }

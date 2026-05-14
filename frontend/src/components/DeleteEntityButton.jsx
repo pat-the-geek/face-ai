@@ -56,7 +56,7 @@ export default function DeleteEntityButton({ entity }) {
     return (
       <button
         onClick={() => setArmed(true)}
-        className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+        className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider text-[var(--text-secondary)] hover:border-accent hover:text-accent transition-colors"
         title="Droit d'opposition (RGPD art. 17, 21 / nLPD art. 32)"
       >
         ⌫ Supprimer
@@ -67,7 +67,7 @@ export default function DeleteEntityButton({ entity }) {
   return (
     <button
       onClick={() => mutation.mutate()}
-      className="px-3 py-1 border border-[var(--accent)] text-xs font-mono uppercase tracking-wider text-[var(--accent)] animate-pulse"
+      className="px-3 py-1 border border-accent text-xs font-mono uppercase tracking-wider text-accent animate-pulse"
       title="Cliquer à nouveau pour confirmer · annulation auto dans 4 s"
     >
       ⚠ Confirmer · {entity.image_count} img + entité

@@ -11,7 +11,7 @@ export default function AdminPanel() {
   return (
     <div className="h-full overflow-y-auto p-8 max-w-5xl mx-auto">
       <header className="mb-8">
-        <div className="font-display-italic text-4xl">Admin · observabilité</div>
+        <div className="font-display text-4xl">Admin · observabilité</div>
         <p className="mt-2 text-sm text-[var(--text-secondary)] max-w-2xl">
           État du worker, des backups, des conflits de fusion en attente, et de
           l'ingestion WUDD. Tout est en lecture seule sauf le bouton de backup
@@ -34,7 +34,7 @@ function Section({ title, subtitle, children }) {
   return (
     <section>
       <div className="mb-3 pb-2 border-b divider">
-        <div className="font-display-italic text-2xl">{title}</div>
+        <div className="font-display text-2xl">{title}</div>
         {subtitle && (
           <p className="mt-1 text-xs text-[var(--text-secondary)]">{subtitle}</p>
         )}
@@ -60,7 +60,7 @@ function StaleAt({ iso }) {
     <span
       className={
         stale
-          ? "text-[var(--accent)]"
+          ? "text-accent"
           : "text-[var(--text-secondary)]"
       }
       title={iso}
@@ -111,7 +111,7 @@ function WorkerSection() {
                 </td>
                 <td className="text-right py-1.5">
                   {info.last_error_at ? (
-                    <span className="text-[var(--accent)]">
+                    <span className="text-accent">
                       <StaleAt iso={info.last_error_at} />
                     </span>
                   ) : (
@@ -121,7 +121,7 @@ function WorkerSection() {
                 <td className="text-right py-1.5">{info.successes_24h}</td>
                 <td className="text-right py-1.5">
                   {info.errors_24h > 0 ? (
-                    <span className="text-[var(--accent)]">{info.errors_24h}</span>
+                    <span className="text-accent">{info.errors_24h}</span>
                   ) : (
                     info.errors_24h
                   )}
@@ -173,7 +173,7 @@ function Stat({ label, value, accent }) {
       </div>
       <div
         className={`mt-1 text-sm ${
-          accent ? "text-[var(--accent)]" : "text-[var(--text-primary)]"
+          accent ? "text-accent" : "text-[var(--text-primary)]"
         }`}
       >
         {value ?? "—"}
@@ -227,7 +227,7 @@ function MergeConflictsSection() {
                     ({c.duplicate.image_count} img)
                   </span>
                 </td>
-                <td className="py-1.5 text-[var(--accent)]">{c.reason}</td>
+                <td className="py-1.5 text-accent">{c.reason}</td>
               </tr>
             ))}
           </tbody>
@@ -260,14 +260,14 @@ function RecheckSection() {
         <button
           onClick={() => recheckMut.mutate(50)}
           disabled={recheckMut.isPending}
-          className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors disabled:opacity-50"
+          className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider hover:border-accent hover:text-accent transition-colors disabled:opacity-50"
         >
           {recheckMut.isPending ? "recheck 50…" : "↻ Recheck 50"}
         </button>
         <button
           onClick={() => recheckMut.mutate(200)}
           disabled={recheckMut.isPending}
-          className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors disabled:opacity-50"
+          className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider hover:border-accent hover:text-accent transition-colors disabled:opacity-50"
         >
           {recheckMut.isPending ? "recheck 200…" : "↻ Recheck 200"}
         </button>
@@ -284,7 +284,7 @@ function RecheckSection() {
           <div>
             <span className="text-[var(--text-primary)]">{lastSummary.checked}</span>{" "}
             vérifiées ·{" "}
-            <span className={lastSummary.purged ? "text-[var(--accent)]" : ""}>
+            <span className={lastSummary.purged ? "text-accent" : ""}>
               {lastSummary.purged} purgées
             </span>{" "}
             ·{" "}
@@ -292,7 +292,7 @@ function RecheckSection() {
               {lastSummary.still_person} valides
             </span>
             {lastSummary.errors > 0 && (
-              <span className="text-[var(--accent)] ml-2">
+              <span className="text-accent ml-2">
                 · {lastSummary.errors} erreurs
               </span>
             )}
@@ -346,7 +346,7 @@ function BackupsSection() {
         <button
           onClick={() => backupMut.mutate()}
           disabled={backupMut.isPending}
-          className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors disabled:opacity-50"
+          className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider hover:border-accent hover:text-accent transition-colors disabled:opacity-50"
         >
           {backupMut.isPending ? "snapshot…" : "↻ Backup maintenant"}
         </button>
@@ -382,7 +382,7 @@ function BackupsSection() {
                         </span>
                         <button
                           onClick={() => setConfirmingRestore(filename)}
-                          className="text-[9px] uppercase tracking-wider text-[var(--text-secondary)] hover:text-[var(--accent)]"
+                          className="text-[9px] uppercase tracking-wider text-[var(--text-secondary)] hover:text-accent"
                           title="Restaurer ce snapshot"
                         >
                           ↺
@@ -405,8 +405,8 @@ function BackupsSection() {
       )}
 
       {confirmingRestore && (
-        <div className="mt-4 border border-[var(--accent)] px-4 py-3 text-xs font-mono">
-          <div className="text-[var(--accent)] uppercase tracking-wider mb-2">
+        <div className="mt-4 border border-accent px-4 py-3 text-xs font-mono">
+          <div className="text-accent uppercase tracking-wider mb-2">
             ⚠ Restauration de {confirmingRestore}
           </div>
           <p className="text-[var(--text-primary)] mb-3 leading-snug">
@@ -420,7 +420,7 @@ function BackupsSection() {
             <button
               onClick={() => restoreMut.mutate(confirmingRestore)}
               disabled={restoreMut.isPending}
-              className="px-3 py-1 border border-[var(--accent)] text-[var(--accent)] uppercase tracking-wider animate-pulse disabled:animate-none"
+              className="px-3 py-1 border border-accent text-accent uppercase tracking-wider animate-pulse disabled:animate-none"
             >
               {restoreMut.isPending ? "restauration…" : "Confirmer restauration"}
             </button>
@@ -438,7 +438,7 @@ function BackupsSection() {
             </div>
           )}
           {restoreMut.isError && (
-            <div className="mt-3 text-[var(--accent)]">
+            <div className="mt-3 text-accent">
               erreur : {restoreMut.error?.message}
             </div>
           )}
@@ -457,10 +457,10 @@ function RestoreSuccessBanner({ info, onDismiss }) {
   // de connexions ouvertes sur l'ancien handle de fichier).
   const cmd = "docker compose restart api worker";
   return (
-    <div className="mt-4 border-2 border-[var(--accent)] bg-[var(--accent)]/10 px-4 py-3 text-xs font-mono">
+    <div className="mt-4 border-2 border-accent bg-accent/10 px-4 py-3 text-xs font-mono">
       <div className="flex items-start justify-between gap-3">
         <div className="flex-1">
-          <div className="text-[var(--accent)] uppercase tracking-wider mb-1 text-sm">
+          <div className="text-accent uppercase tracking-wider mb-1 text-sm">
             ⚠ Restauration terminée — RESTART REQUIS
           </div>
           <p className="text-[var(--text-primary)] leading-snug">
@@ -478,7 +478,7 @@ function RestoreSuccessBanner({ info, onDismiss }) {
             <code className="block text-[var(--text-primary)]">{cmd}</code>
             <button
               onClick={() => navigator.clipboard?.writeText(cmd)}
-              className="mt-1 text-[10px] uppercase tracking-wider text-[var(--text-secondary)] hover:text-[var(--accent)]"
+              className="mt-1 text-[10px] uppercase tracking-wider text-[var(--text-secondary)] hover:text-accent"
             >
               copier
             </button>
@@ -493,7 +493,7 @@ function RestoreSuccessBanner({ info, onDismiss }) {
         </div>
         <button
           onClick={onDismiss}
-          className="text-[var(--text-secondary)] hover:text-[var(--accent)] text-base shrink-0"
+          className="text-[var(--text-secondary)] hover:text-accent text-base shrink-0"
           aria-label="Fermer"
         >
           ✕
@@ -554,7 +554,7 @@ function Loading() {
 
 function ErrorLine({ err }) {
   return (
-    <div className="text-xs font-mono text-[var(--accent)] py-2">
+    <div className="text-xs font-mono text-accent py-2">
       erreur : {err.message}
     </div>
   );

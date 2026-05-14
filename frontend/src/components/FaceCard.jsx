@@ -27,7 +27,7 @@ function IdentityBadge({ image }) {
   if (isHumanFlagged) {
     return (
       <span
-        className="text-[var(--accent)]"
+        className="text-accent"
         title="Signalée manuellement comme ne correspondant pas à cette personne"
       >
         ⚠ signalée
@@ -48,14 +48,14 @@ function IdentityBadge({ image }) {
 
   if (isArcFlagged) {
     return (
-      <span className="text-[var(--accent)]" title={tip}>
+      <span className="text-accent" title={tip}>
         ⚠ flagged {score.toFixed(2)}
       </span>
     );
   }
   if (isSuspect) {
     return (
-      <span style={{ color: "#d97706" }} title={tip}>
+      <span style={{ color: "var(--color-warning)" }} title={tip}>
         ? douteux {score.toFixed(2)}
       </span>
     );
@@ -93,7 +93,7 @@ export default function FaceCard({
   const cardBorder = isAnyFlagged
     ? { borderColor: "var(--accent)", borderWidth: 2 }
     : isSuspect
-      ? { borderColor: "#d97706", borderWidth: 2 }
+      ? { borderColor: "var(--color-warning)", borderWidth: 2 }
       : undefined;
 
   const flagMut = useMutation({
@@ -116,7 +116,7 @@ export default function FaceCard({
       <div className="relative aspect-square">
         <button
           onClick={() => onActivate?.(image)}
-          className="block w-full h-full overflow-hidden bg-[var(--bg-secondary)] ambient-halo"
+          className="block w-full h-full overflow-hidden bg-bg-secondary ambient-halo"
         >
           <FaceImage src={display} alt={image.caption || ""} />
         </button>
@@ -131,7 +131,7 @@ export default function FaceCard({
             title={galtonSelected ? "Retirer du composite Galton" : "Ajouter au composite Galton"}
             className={`absolute top-2 left-2 w-7 h-7 rounded-full border flex items-center justify-center text-sm font-mono transition-all ${
               galtonSelected
-                ? "bg-[var(--accent)] text-white border-[var(--accent)] opacity-100"
+                ? "bg-accent text-white border-accent opacity-100"
                 : "bg-black/60 text-white border-white/40 opacity-0 group-hover:opacity-100 hover:bg-black/80"
             }`}
           >
@@ -155,7 +155,7 @@ export default function FaceCard({
                 e.stopPropagation();
                 setConfirmingFlag(true);
               }}
-              className="px-2 py-1 text-[10px] font-mono uppercase tracking-wider rounded bg-black/60 text-white hover:bg-[var(--accent)]"
+              className="px-2 py-1 text-[10px] font-mono uppercase tracking-wider rounded bg-black/60 text-white hover:bg-accent"
               title="Signaler : cette image ne correspond pas à la personne attribuée"
             >
               ⚠ Signaler
@@ -168,7 +168,7 @@ export default function FaceCard({
                   e.stopPropagation();
                   flagMut.mutate();
                 }}
-                className="px-2 py-1 text-[10px] font-mono uppercase tracking-wider rounded bg-[var(--accent)] text-white animate-pulse"
+                className="px-2 py-1 text-[10px] font-mono uppercase tracking-wider rounded bg-accent text-white animate-pulse"
                 title="Confirmer le signalement — bascule l'image dans /audit"
               >
                 ⚠ Confirmer
@@ -226,7 +226,7 @@ export default function FaceCard({
             href={image.article.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="text-[var(--text-secondary)] hover:text-[var(--accent)] truncate"
+            className="text-[var(--text-secondary)] hover:text-accent truncate"
             title={image.article.title}
           >
             → {image.article.source_domain}
@@ -280,7 +280,7 @@ function FaceImage({ src, alt }) {
 
   if (errored || !src) {
     return (
-      <div className="w-full h-full flex items-center justify-center bg-[var(--bg-secondary)]">
+      <div className="w-full h-full flex items-center justify-center bg-bg-secondary">
         <span className="font-mono text-[10px] uppercase tracking-wider text-[var(--text-secondary)]">
           ⌧ image indisponible
         </span>

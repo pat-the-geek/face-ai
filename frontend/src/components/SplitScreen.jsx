@@ -41,7 +41,7 @@ export default function SplitScreen() {
       <div className="px-6 py-2 border-b divider flex items-center justify-between text-xs font-mono gap-4">
         <Link
           to={`/${slugA}`}
-          className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors uppercase tracking-wider"
+          className="text-[var(--text-secondary)] hover:text-accent transition-colors uppercase tracking-wider"
           title="Quitter la comparaison"
         >
           ← {slugA}
@@ -53,7 +53,7 @@ export default function SplitScreen() {
           <button
             onClick={() => splitFlipbook.open(0)}
             disabled={flipbookDisabled}
-            className="px-3 py-1 border divider uppercase tracking-wider transition-colors enabled:hover:border-[var(--accent)] enabled:hover:text-[var(--accent)] disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-3 py-1 border divider uppercase tracking-wider transition-colors enabled:hover:border-accent enabled:hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed"
             title={
               flipbookDisabled
                 ? "Aucune paire d'images alignées à comparer"
@@ -70,7 +70,7 @@ export default function SplitScreen() {
         </div>
         <Link
           to={`/${slugB}`}
-          className="text-[var(--text-secondary)] hover:text-[var(--accent)] transition-colors uppercase tracking-wider"
+          className="text-[var(--text-secondary)] hover:text-accent transition-colors uppercase tracking-wider"
         >
           {slugB} →
         </Link>

@@ -19,7 +19,7 @@ export default function AlphaNav({
         onClick={onToggleFavorites}
         className={`px-2 py-1 transition-colors leading-none text-base ${
           favoritesOnly
-            ? "text-[var(--accent)]"
+            ? "text-accent"
             : "text-[var(--border)] hover:text-[var(--text-secondary)]"
         }`}
         title={favoritesOnly ? "Afficher toutes les entités" : "Afficher uniquement les favoris"}
@@ -30,7 +30,7 @@ export default function AlphaNav({
         onClick={toggleSort}
         className={`px-2 py-1 ml-1 text-xs uppercase tracking-wider transition-colors leading-none ${
           sortMode === "first_name"
-            ? "text-[var(--accent)]"
+            ? "text-accent"
             : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
         }`}
         title={
@@ -46,7 +46,7 @@ export default function AlphaNav({
         onClick={() => onSelect(null)}
         className={`px-2 py-1 transition-colors ${
           active === null
-            ? "text-[var(--accent)]"
+            ? "text-accent"
             : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
         }`}
       >
@@ -63,7 +63,7 @@ export default function AlphaNav({
             onClick={() => onSelect(letter)}
             className={`w-7 py-1 transition-colors text-center ${
               active === letter
-                ? "text-[var(--accent)]"
+                ? "text-accent"
                 : disabled
                   ? "text-[var(--border)]"
                   : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
@@ -78,7 +78,7 @@ export default function AlphaNav({
           onClick={() => onSelect("#")}
           className={`px-2 py-1 transition-colors ${
             active === "#"
-              ? "text-[var(--accent)]"
+              ? "text-accent"
               : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           }`}
         >

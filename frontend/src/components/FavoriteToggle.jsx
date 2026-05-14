@@ -73,7 +73,7 @@ export default function FavoriteToggle({ slug, isFavorite, size = "md", onClick 
       onClick={handleClick}
       className={`${sizeClass} leading-none transition-colors ${
         localFavorite
-          ? "text-[var(--accent)]"
+          ? "text-accent"
           : "text-[var(--border)] hover:text-[var(--text-secondary)]"
       }`}
       title={localFavorite ? "Retirer des favoris" : "Ajouter aux favoris"}

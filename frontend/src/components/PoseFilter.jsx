@@ -14,7 +14,7 @@ export default function PoseFilter({ active, onChange }) {
           onClick={() => onChange(opt.value)}
           className={`px-3 py-1 border divider transition-colors ${
             active === opt.value
-              ? "border-[var(--accent)] text-[var(--accent)]"
+              ? "border-accent text-accent"
               : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           }`}
         >

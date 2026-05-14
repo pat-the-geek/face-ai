@@ -30,7 +30,7 @@ export default function DdgPicker({ slug }) {
       <button
         onClick={() => setOpen(true)}
         title="Chercher des images supplémentaires via DuckDuckGo (hors corpus WUDD — décision manuelle par image)"
-        className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+        className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider hover:border-accent hover:text-accent transition-colors"
       >
         🦆 DDG
       </button>
@@ -96,7 +96,7 @@ function Modal({ slug, onClose }) {
       >
         <header className="px-6 py-4 border-b divider flex items-center justify-between">
           <div>
-            <div className="font-display-italic text-2xl">DuckDuckGo · images</div>
+            <div className="font-display text-2xl">DuckDuckGo · images</div>
             {state.data?.query && (
               <div className="text-xs font-mono text-[var(--text-secondary)] mt-1">
                 requête : « {state.data.query} » · {state.data.count} résultats
@@ -105,7 +105,7 @@ function Modal({ slug, onClose }) {
           </div>
           <button
             onClick={onClose}
-            className="text-xs font-mono uppercase tracking-wider text-[var(--text-secondary)] hover:text-[var(--accent)]"
+            className="text-xs font-mono uppercase tracking-wider text-[var(--text-secondary)] hover:text-accent"
           >
             ✕ Fermer (Échap)
           </button>
@@ -119,7 +119,7 @@ function Modal({ slug, onClose }) {
           )}
 
           {state.error && (
-            <div className="py-12 text-center text-xs font-mono text-[var(--accent)]">
+            <div className="py-12 text-center text-xs font-mono text-accent">
               erreur : {state.error.message}
               {state.error.message?.includes("disabled") && (
                 <div className="mt-3 text-[var(--text-secondary)] normal-case">
@@ -171,7 +171,7 @@ function Modal({ slug, onClose }) {
           <button
             onClick={onSubmit}
             disabled={selected.size === 0 || ingesting}
-            className="px-4 py-1.5 border border-[var(--accent)] uppercase tracking-wider text-[var(--accent)] disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-4 py-1.5 border border-accent uppercase tracking-wider text-accent disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {ingesting
               ? `ingestion… (${ingestedIds.size}/${selected.size})`
@@ -194,12 +194,12 @@ function Candidate({ candidate, selected, ingested, onToggle }) {
         ingested
           ? "opacity-50 border-divider cursor-default"
           : selected
-            ? "border-[var(--accent)]"
+            ? "border-accent"
             : "border-divider hover:border-[var(--text-secondary)]"
       }`}
     >
       <div
-        className="bg-[var(--bg-secondary)] flex items-center justify-center"
+        className="bg-bg-secondary flex items-center justify-center"
         style={{ aspectRatio: "1 / 1" }}
       >
         <img
@@ -212,14 +212,14 @@ function Candidate({ candidate, selected, ingested, onToggle }) {
       </div>
       <div className="absolute top-2 right-2">
         {ingested ? (
-          <span className="bg-[var(--bg-primary)] text-[var(--accent)] text-[10px] font-mono px-2 py-0.5 border border-[var(--accent)]">
+          <span className="bg-[var(--bg-primary)] text-accent text-[10px] font-mono px-2 py-0.5 border border-accent">
             ✓ ingéré
           </span>
         ) : (
           <span
             className={`block w-5 h-5 border ${
               selected
-                ? "bg-[var(--accent)] border-[var(--accent)] text-white"
+                ? "bg-accent border-accent text-white"
                 : "bg-[var(--bg-primary)] border-divider"
             } text-xs flex items-center justify-center font-mono`}
           >

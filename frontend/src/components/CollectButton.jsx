@@ -38,7 +38,7 @@ export default function CollectButton({ slug }) {
         onClick={() => collectMut.mutate()}
         disabled={collectMut.isPending}
         title="Force un pull WUDD complet pour cette personne (jusqu'à 200 articles récents). Les nouvelles images apparaîtront dans la galerie au fil de leur analyse."
-        className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider transition-colors enabled:hover:border-[var(--accent)] enabled:hover:text-[var(--accent)] disabled:opacity-40 disabled:cursor-not-allowed"
+        className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider transition-colors enabled:hover:border-accent enabled:hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed"
       >
         {collectMut.isPending ? "collecte…" : "↧ Collecter"}
       </button>
@@ -57,7 +57,7 @@ export default function CollectButton({ slug }) {
         </span>
       )}
       {collectMut.isError && (
-        <span className="text-[10px] font-mono text-[var(--accent)]">
+        <span className="text-[10px] font-mono text-accent">
           erreur : {collectMut.error?.message}
         </span>
       )}

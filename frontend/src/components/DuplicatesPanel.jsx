@@ -44,7 +44,7 @@ export default function DuplicatesPanel() {
   }
   if (error) {
     return (
-      <div className="font-mono text-sm text-[var(--accent)]">
+      <div className="font-mono text-sm text-accent">
         erreur : {error.message}
       </div>
     );
@@ -132,11 +132,11 @@ export default function DuplicatesPanel() {
 function Category({ title, subtitle, severity, children }) {
   return (
     <section>
-      <h3 className="font-display-italic text-2xl mb-1">{title}</h3>
+      <h3 className="font-display text-2xl mb-1">{title}</h3>
       <p
         className={`text-xs leading-snug mb-3 max-w-3xl ${
           severity === "auto"
-            ? "text-[var(--accent)]"
+            ? "text-accent"
             : "text-[var(--text-secondary)]"
         }`}
       >
@@ -179,7 +179,7 @@ function CandidateGroup({ label, entities, onMerged }) {
         {!confirming && !mergeMut.isPending && (
           <button
             onClick={() => setConfirming(true)}
-            className="px-2 py-0.5 border divider text-[10px] font-mono uppercase tracking-wider hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+            className="px-2 py-0.5 border divider text-[10px] font-mono uppercase tracking-wider hover:border-accent hover:text-accent transition-colors"
           >
             ⇒ Fusionner
           </button>
@@ -188,7 +188,7 @@ function CandidateGroup({ label, entities, onMerged }) {
           <span className="flex items-center gap-2">
             <button
               onClick={() => mergeMut.mutate()}
-              className="px-2 py-0.5 border border-[var(--accent)] text-[10px] font-mono uppercase tracking-wider text-[var(--accent)] animate-pulse"
+              className="px-2 py-0.5 border border-accent text-[10px] font-mono uppercase tracking-wider text-accent animate-pulse"
             >
               ⚠ Confirmer
             </button>
@@ -214,7 +214,7 @@ function CandidateGroup({ label, entities, onMerged }) {
             <li
               key={e.slug}
               className={`flex items-center justify-between gap-3 px-2 py-1 text-sm ${
-                isCanonical ? "bg-[var(--bg-secondary)]" : ""
+                isCanonical ? "bg-bg-secondary" : ""
               }`}
             >
               <div className="flex items-center gap-2 min-w-0">
@@ -229,12 +229,12 @@ function CandidateGroup({ label, entities, onMerged }) {
                 />
                 <Link
                   to={`/${e.slug}`}
-                  className="font-display-italic truncate hover:text-[var(--accent)] transition-colors"
+                  className="font-display truncate hover:text-accent transition-colors"
                 >
                   {e.name}
                 </Link>
                 {isCanonical && (
-                  <span className="text-[9px] font-mono uppercase tracking-wider text-[var(--accent)]">
+                  <span className="text-[9px] font-mono uppercase tracking-wider text-accent">
                     canonical
                   </span>
                 )}
@@ -248,7 +248,7 @@ function CandidateGroup({ label, entities, onMerged }) {
       </ul>
 
       {mergeMut.isError && (
-        <div className="mt-2 text-xs font-mono text-[var(--accent)]">
+        <div className="mt-2 text-xs font-mono text-accent">
           erreur : {mergeMut.error.message}
         </div>
       )}

@@ -89,7 +89,7 @@ export default function GalleryPanel({ slug: propSlug }) {
 
   if (!slug) {
     return (
-      <div className="h-full flex items-center justify-center font-display-italic text-3xl text-[var(--text-secondary)]">
+      <div className="h-full flex items-center justify-center font-display text-3xl text-[var(--text-secondary)]">
         sélectionnez une entité
       </div>
     );
@@ -105,7 +105,7 @@ export default function GalleryPanel({ slug: propSlug }) {
 
   if (error) {
     return (
-      <div className="p-8 font-mono text-sm text-[var(--accent)]">
+      <div className="p-8 font-mono text-sm text-accent">
         erreur : {error.message}
       </div>
     );
@@ -135,10 +135,10 @@ export default function GalleryPanel({ slug: propSlug }) {
           onSelectDate={setDateFilter}
         />
         {dateFilter && (
-          <div className="mb-4 px-3 py-2 border border-[var(--accent)] flex items-center justify-between text-xs font-mono">
+          <div className="mb-4 px-3 py-2 border border-accent flex items-center justify-between text-xs font-mono">
             <span>
               filtre actif : articles du{" "}
-              <strong className="text-[var(--accent)]">{dateFilter}</strong>
+              <strong className="text-accent">{dateFilter}</strong>
               {data?.filtered !== undefined && (
                 <span className="text-[var(--text-secondary)] ml-2">
                   ({data.filtered} image{data.filtered > 1 ? "s" : ""})
@@ -147,7 +147,7 @@ export default function GalleryPanel({ slug: propSlug }) {
             </span>
             <button
               onClick={() => setDateFilter(null)}
-              className="uppercase tracking-wider text-[var(--text-secondary)] hover:text-[var(--accent)]"
+              className="uppercase tracking-wider text-[var(--text-secondary)] hover:text-accent"
             >
               ✕ retirer
             </button>

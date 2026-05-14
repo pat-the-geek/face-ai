@@ -31,7 +31,7 @@ export default function SourceLightbox({ image, onClose }) {
   return createPortal(
     <div
       className="fixed inset-0 z-[60] flex flex-col select-none"
-      style={{ background: "#0b0b0b" }}
+      style={{ background: "var(--immersive-bg)" }}
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
@@ -40,18 +40,18 @@ export default function SourceLightbox({ image, onClose }) {
       <div className="flex items-center justify-between px-8 py-3 font-mono text-xs">
         <button
           onClick={onClose}
-          className="text-[#5a5550] hover:text-[#e8e4de] transition-colors"
+          className="text-[var(--immersive-text-muted)] hover:text-[var(--immersive-text-primary)] transition-colors"
         >
           ✕ Échap
         </button>
-        <span className="text-[#5a5550] uppercase tracking-wider">
+        <span className="text-[var(--immersive-text-muted)] uppercase tracking-wider">
           image source · pleine résolution
         </span>
         <a
           href={image.source_url}
           target="_blank"
           rel="noreferrer"
-          className="text-[#5a5550] hover:text-[#e8e4de] transition-colors"
+          className="text-[var(--immersive-text-muted)] hover:text-[var(--immersive-text-primary)] transition-colors"
           onClick={(e) => e.stopPropagation()}
         >
           ↗ ouvrir l'URL
@@ -79,26 +79,26 @@ export default function SourceLightbox({ image, onClose }) {
       {/* Méta basse */}
       <div className="px-8 py-3 font-mono text-xs space-y-1 max-h-32 overflow-y-auto">
         {image.caption && (
-          <p className="text-[#e8e4de]">{image.caption}</p>
+          <p className="text-[var(--immersive-text-primary)]">{image.caption}</p>
         )}
         {image.copyright && (
-          <p className="text-[#5a5550]">{image.copyright}</p>
+          <p className="text-[var(--immersive-text-muted)]">{image.copyright}</p>
         )}
         {image.article && (
-          <p className="text-[#5a5550]">
+          <p className="text-[var(--immersive-text-muted)]">
             article :{" "}
             <a
               href={image.article.url}
               target="_blank"
               rel="noreferrer"
-              className="hover:text-[#e8e4de] transition-colors"
+              className="hover:text-[var(--immersive-text-primary)] transition-colors"
               onClick={(e) => e.stopPropagation()}
             >
               {image.article.title || image.article.url}
             </a>
           </p>
         )}
-        <p className="text-[#3a3530] truncate">{image.source_url}</p>
+        <p className="text-[var(--immersive-separator)] truncate">{image.source_url}</p>
       </div>
     </div>,
     document.body,

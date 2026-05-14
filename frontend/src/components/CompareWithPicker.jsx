@@ -24,7 +24,7 @@ export default function CompareWithPicker({ currentSlug }) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+        className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider hover:border-accent hover:text-accent transition-colors"
         title="Comparer cette entité avec une autre côte-à-côte"
       >
         ⊞ Comparer à…
@@ -43,7 +43,7 @@ export default function CompareWithPicker({ currentSlug }) {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="entité à comparer…"
-          className="px-2 py-1 border divider text-xs font-mono bg-transparent outline-none focus:border-[var(--accent)] w-64"
+          className="px-2 py-1 border divider text-xs font-mono bg-transparent outline-none focus:border-accent w-64"
           onKeyDown={(e) => {
             if (e.key === "Escape") {
               setOpen(false);
@@ -69,7 +69,7 @@ export default function CompareWithPicker({ currentSlug }) {
                 onClick={() => {
                   navigate(`/compare/${currentSlug}/${e.slug}`);
                 }}
-                className="w-full text-left px-2 py-1 text-sm font-display-italic hover:bg-[var(--bg-secondary)] transition-colors flex justify-between items-baseline"
+                className="w-full text-left px-2 py-1 text-sm font-display hover:bg-bg-secondary transition-colors flex justify-between items-baseline"
               >
                 <span>{e.name}</span>
                 <span className="text-xs font-mono text-[var(--text-secondary)]">

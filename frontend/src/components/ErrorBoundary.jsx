@@ -27,8 +27,8 @@ export default class ErrorBoundary extends Component {
     if (this.state.error) {
       return (
         <div className="h-screen flex items-center justify-center p-8 bg-[var(--bg-primary)] text-[var(--text-primary)]">
-          <div className="max-w-2xl border border-[var(--accent)] p-6 font-mono text-sm">
-            <div className="text-[var(--accent)] uppercase tracking-wider text-xs mb-3">
+          <div className="max-w-2xl border border-accent p-6 font-mono text-sm">
+            <div className="text-accent uppercase tracking-wider text-xs mb-3">
               ⚠ Crash React capturé
             </div>
             <div className="mb-2">

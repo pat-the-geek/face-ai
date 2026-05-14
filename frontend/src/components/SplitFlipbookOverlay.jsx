@@ -20,8 +20,8 @@ export default function SplitFlipbookOverlay({ controller, nameA, nameB }) {
       className="fixed inset-0 z-50 flex flex-col select-none"
       style={{
         background:
-          "radial-gradient(ellipse 90% 60% at 50% 50%, hsl(var(--ambient-hue) calc(var(--ambient-sat) * 0.3%) 8%), #080808 70%)",
-        color: "#e8e4de",
+          "radial-gradient(ellipse 90% 60% at 50% 50%, hsl(var(--ambient-hue) calc(var(--ambient-sat) * 0.3%) 8%), var(--immersive-bg) 70%)",
+        color: "var(--immersive-text-primary)",
       }}
       onClick={(e) => {
         if (e.target === e.currentTarget) controller.close();
@@ -31,15 +31,15 @@ export default function SplitFlipbookOverlay({ controller, nameA, nameB }) {
       <div className="flex items-center justify-between px-8 py-4 font-mono text-xs">
         <button
           onClick={controller.close}
-          className="text-[#5a5550] hover:text-[#e8e4de] transition-colors"
+          className="text-[var(--immersive-text-muted)] hover:text-[var(--immersive-text-primary)] transition-colors"
           aria-label="Fermer (Échap)"
         >
           ✕ Échap
         </button>
-        <div className="text-[#5a5550]">
+        <div className="text-[var(--immersive-text-muted)]">
           {controller.currentIdx + 1} / {controller.total} paires comparées
           {controller.lenA !== controller.lenB && (
-            <span className="ml-2 text-[#3a3530]">
+            <span className="ml-2 text-[var(--immersive-separator)]">
               ({controller.lenA} ↔ {controller.lenB})
             </span>
           )}
@@ -58,7 +58,7 @@ export default function SplitFlipbookOverlay({ controller, nameA, nameB }) {
           e.stopPropagation();
           controller.prev();
         }}
-        className="absolute left-2 top-1/2 -translate-y-1/2 text-[#5a5550] hover:text-[#e8e4de] text-6xl font-thin opacity-40 hover:opacity-100 transition-opacity p-6"
+        className="absolute left-2 top-1/2 -translate-y-1/2 text-[var(--immersive-text-muted)] hover:text-[var(--immersive-text-primary)] text-6xl font-thin opacity-40 hover:opacity-100 transition-opacity p-6"
         aria-label="Paire précédente (←)"
       >
         ‹
@@ -68,7 +68,7 @@ export default function SplitFlipbookOverlay({ controller, nameA, nameB }) {
           e.stopPropagation();
           controller.next();
         }}
-        className="absolute right-2 top-1/2 -translate-y-1/2 text-[#5a5550] hover:text-[#e8e4de] text-6xl font-thin opacity-40 hover:opacity-100 transition-opacity p-6"
+        className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--immersive-text-muted)] hover:text-[var(--immersive-text-primary)] text-6xl font-thin opacity-40 hover:opacity-100 transition-opacity p-6"
         aria-label="Paire suivante (→)"
       >
         ›
@@ -80,8 +80,8 @@ export default function SplitFlipbookOverlay({ controller, nameA, nameB }) {
           onClick={() => controller.setAutoPlay(!controller.autoPlay)}
           className={
             controller.autoPlay
-              ? "text-[#c8102e]"
-              : "text-[#5a5550] hover:text-[#e8e4de] transition-colors"
+              ? "text-accent"
+              : "text-[var(--immersive-text-muted)] hover:text-[var(--immersive-text-primary)] transition-colors"
           }
         >
           {controller.autoPlay ? "❚❚" : "▶"} Auto
@@ -92,8 +92,8 @@ export default function SplitFlipbookOverlay({ controller, nameA, nameB }) {
             onClick={() => controller.setFps(s)}
             className={
               controller.fps === s
-                ? "text-[#e8e4de]"
-                : "text-[#5a5550] hover:text-[#e8e4de] transition-colors"
+                ? "text-[var(--immersive-text-primary)]"
+                : "text-[var(--immersive-text-muted)] hover:text-[var(--immersive-text-primary)] transition-colors"
             }
           >
             {s} fps
@@ -130,7 +130,7 @@ function SplitPanel({ image, name }) {
         />
       </div>
       <div
-        className="mt-3 font-mono text-xs uppercase tracking-wider text-[#8a8278]"
+        className="mt-3 font-mono text-xs uppercase tracking-wider text-[var(--immersive-text-muted)]"
       >
         {name}
       </div>

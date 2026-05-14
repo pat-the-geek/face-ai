@@ -79,7 +79,7 @@ export default function EntityList({ letter, favoritesOnly = false }) {
   }
   if (error) {
     return (
-      <div className="p-6 text-sm font-mono text-[var(--accent)]">
+      <div className="p-6 text-sm font-mono text-accent">
         erreur : {error.message}
       </div>
     );
@@ -114,7 +114,7 @@ export default function EntityList({ letter, favoritesOnly = false }) {
           chargement de la suite… ({remaining} restantes)
           <button
             onClick={() => setVisibleCount(entities.length)}
-            className="ml-3 underline hover:text-[var(--accent)]"
+            className="ml-3 underline hover:text-accent"
           >
             tout afficher
           </button>

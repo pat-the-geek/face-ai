@@ -114,7 +114,7 @@ export default function GlobalSearch() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-2 px-2 py-0.5 border divider text-xs font-mono uppercase tracking-wider text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+        className="flex items-center gap-2 px-2 py-0.5 border divider text-xs font-mono uppercase tracking-wider text-[var(--text-secondary)] hover:border-accent hover:text-accent transition-colors"
         title="Recherche globale (Cmd+K)"
       >
         <span>⌕ Rechercher</span>
@@ -165,7 +165,7 @@ export default function GlobalSearch() {
                         onClick={() => onActivate({ kind: "entity", item: e })}
                         onMouseEnter={() => setSelectedIdx(idx)}
                       >
-                        <div className="font-display-italic text-base">
+                        <div className="font-display text-base">
                           {e.name}
                         </div>
                         <Snippet html={e.snippet} />
@@ -233,11 +233,11 @@ export default function GlobalSearch() {
                             <img
                               src={img.aligned_url}
                               alt=""
-                              className="w-12 h-12 object-cover shrink-0 bg-[var(--bg-secondary)]"
+                              className="w-12 h-12 object-cover shrink-0 bg-bg-secondary"
                               loading="lazy"
                             />
                           ) : (
-                            <div className="w-12 h-12 bg-[var(--bg-secondary)] shrink-0" />
+                            <div className="w-12 h-12 bg-bg-secondary shrink-0" />
                           )}
                           <div className="min-w-0 flex-1">
                             <div className="text-sm leading-snug">
@@ -274,7 +274,7 @@ export default function GlobalSearch() {
 function Section({ title, total, children }) {
   return (
     <div className="border-b divider last:border-b-0">
-      <div className="px-4 py-1.5 text-[10px] font-mono uppercase tracking-wider text-[var(--text-secondary)] bg-[var(--bg-secondary)] flex justify-between">
+      <div className="px-4 py-1.5 text-[10px] font-mono uppercase tracking-wider text-[var(--text-secondary)] bg-bg-secondary flex justify-between">
         <span>{title}</span>
         <span>{total} hit{total > 1 ? "s" : ""}</span>
       </div>
@@ -289,7 +289,7 @@ function Hit({ selected, onClick, onMouseEnter, children }) {
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       className={`px-4 py-2 cursor-pointer border-b divider last:border-b-0 ${
-        selected ? "bg-[var(--bg-secondary)]" : ""
+        selected ? "bg-bg-secondary" : ""
       }`}
     >
       {children}
@@ -301,7 +301,7 @@ function Snippet({ html }) {
   if (!html) return null;
   return (
     <div
-      className="text-xs text-[var(--text-secondary)] leading-snug mt-1 [&_mark]:bg-transparent [&_mark]:text-[var(--accent)] [&_mark]:font-medium"
+      className="text-xs text-[var(--text-secondary)] leading-snug mt-1 [&_mark]:bg-transparent [&_mark]:text-accent [&_mark]:font-medium"
       dangerouslySetInnerHTML={{ __html: html }}
     />
   );

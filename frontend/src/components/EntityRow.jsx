@@ -36,23 +36,23 @@ function EntityRow({ entity, sortMode = "canonical", active = false }) {
       }}
       className={`w-full text-left px-4 py-3 border-b divider transition-colors flex items-center gap-3 cursor-pointer ${
         active
-          ? "bg-[var(--bg-secondary)]"
-          : "hover:bg-[var(--bg-secondary)]"
+          ? "bg-bg-secondary"
+          : "hover:bg-bg-secondary"
       }`}
     >
-      <div className="shrink-0 w-10 h-10 rounded-full overflow-hidden bg-[var(--bg-secondary)] border divider flex items-center justify-center">
+      <div className="shrink-0 w-10 h-10 rounded-full overflow-hidden bg-bg-secondary border divider flex items-center justify-center">
         {entity.wiki_thumbnail_url ? (
           <DeferredImg
             src={entity.wiki_thumbnail_url}
             className="w-full h-full"
             fallback={
-              <span className="font-display-italic text-lg text-[var(--text-secondary)]">
+              <span className="font-display text-lg text-[var(--text-secondary)]">
                 {initial}
               </span>
             }
           />
         ) : (
-          <span className="font-display-italic text-lg text-[var(--text-secondary)]">
+          <span className="font-display text-lg text-[var(--text-secondary)]">
             {initial}
           </span>
         )}
@@ -62,7 +62,7 @@ function EntityRow({ entity, sortMode = "canonical", active = false }) {
           {/* Pas de truncate : la colonne grid s'étend (cf. fit-content
               dans App.jsx) ; au-delà de 380px, le nom wrappe au lieu
               d'être amputé d'un "…" */}
-          <div className="font-display-italic text-xl leading-tight">
+          <div className="font-display text-xl leading-tight">
             {displayName}
           </div>
           <FavoriteToggle

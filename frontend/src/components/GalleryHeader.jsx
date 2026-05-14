@@ -78,7 +78,7 @@ export default function GalleryHeader({
         )}
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-3">
-            <div className="font-display-italic text-5xl leading-none">
+            <div className="font-display text-5xl leading-none">
               {entity.name}
             </div>
             <FavoriteToggle
@@ -104,7 +104,7 @@ export default function GalleryHeader({
                   href={entity.wiki_url}
                   target="_blank"
                   rel="noreferrer"
-                  className="hover:text-[var(--accent)] transition-colors"
+                  className="hover:text-accent transition-colors"
                 >
                   → Wikipédia
                 </a>
@@ -114,7 +114,7 @@ export default function GalleryHeader({
                   href={`https://www.wikidata.org/wiki/${entity.wikidata_qid}`}
                   target="_blank"
                   rel="noreferrer"
-                  className="hover:text-[var(--accent)] transition-colors"
+                  className="hover:text-accent transition-colors"
                 >
                   → {entity.wikidata_qid}
                 </a>
@@ -149,7 +149,7 @@ export default function GalleryHeader({
             onClick={onToggleUnique}
             className={`px-3 py-1 border text-xs font-mono uppercase tracking-wider transition-colors ${
               uniqueOnly
-                ? "border-[var(--accent)] text-[var(--accent)]"
+                ? "border-accent text-accent"
                 : "divider text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             }`}
             title="Masquer les images marquées comme doublons par dedup"
@@ -159,7 +159,7 @@ export default function GalleryHeader({
           <button
             onClick={onOpenFlipbook}
             disabled={flipbookDisabled}
-            className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider transition-colors enabled:hover:border-[var(--accent)] enabled:hover:text-[var(--accent)] disabled:opacity-40 disabled:cursor-not-allowed"
+            className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider transition-colors enabled:hover:border-accent enabled:hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed"
             title="Mode défilement rapide (Échap pour fermer)"
           >
             ⟷ Flipbook
@@ -167,9 +167,9 @@ export default function GalleryHeader({
           <button
             onClick={() => setGaltonOpen(true)}
             disabled={!images.some((i) => i.aligned_url)}
-            className={`px-3 py-1 border text-xs font-mono uppercase tracking-wider transition-colors enabled:hover:border-[var(--accent)] enabled:hover:text-[var(--accent)] disabled:opacity-40 disabled:cursor-not-allowed ${
+            className={`px-3 py-1 border text-xs font-mono uppercase tracking-wider transition-colors enabled:hover:border-accent enabled:hover:text-accent disabled:opacity-40 disabled:cursor-not-allowed ${
               galtonSelectionCount > 0
-                ? "border-[var(--accent)] text-[var(--accent)]"
+                ? "border-accent text-accent"
                 : "divider"
             }`}
             title={
@@ -183,7 +183,7 @@ export default function GalleryHeader({
           {galtonSelectionCount > 0 && (
             <button
               onClick={onClearGaltonSelection}
-              className="px-2 py-1 text-xs font-mono uppercase tracking-wider text-[var(--text-secondary)] hover:text-[var(--accent)]"
+              className="px-2 py-1 text-xs font-mono uppercase tracking-wider text-[var(--text-secondary)] hover:text-accent"
               title="Vider la sélection Galton"
             >
               ✕
@@ -193,7 +193,7 @@ export default function GalleryHeader({
           <a
             href={`/api/entities/${entity.slug}/export.jpg`}
             download={`face_ai_${entity.slug}.jpg`}
-            className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+            className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider hover:border-accent hover:text-accent transition-colors"
             title="Exporter une planche composite JPG (spec §11.6)"
           >
             ⤓ Export JPG

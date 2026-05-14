@@ -13,7 +13,7 @@ export default function FontScaler() {
       <button
         onClick={decrease}
         disabled={scale <= MIN}
-        className="px-2 py-0.5 transition-colors enabled:hover:text-[var(--accent)] disabled:opacity-30 disabled:cursor-not-allowed"
+        className="px-2 py-0.5 transition-colors enabled:hover:text-accent disabled:opacity-30 disabled:cursor-not-allowed"
         title="Réduire la taille du texte"
         aria-label="Réduire la taille du texte"
       >
@@ -30,7 +30,7 @@ export default function FontScaler() {
       <button
         onClick={increase}
         disabled={scale >= MAX}
-        className="px-2 py-0.5 transition-colors enabled:hover:text-[var(--accent)] disabled:opacity-30 disabled:cursor-not-allowed"
+        className="px-2 py-0.5 transition-colors enabled:hover:text-accent disabled:opacity-30 disabled:cursor-not-allowed"
         title="Augmenter la taille du texte"
         aria-label="Augmenter la taille du texte"
       >

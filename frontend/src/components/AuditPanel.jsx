@@ -40,7 +40,7 @@ export default function AuditPanel() {
     return <div className="p-8 font-mono text-sm text-[var(--text-secondary)]">chargement…</div>;
   }
   if (error) {
-    return <div className="p-8 font-mono text-sm text-[var(--accent)]">erreur : {error.message}</div>;
+    return <div className="p-8 font-mono text-sm text-accent">erreur : {error.message}</div>;
   }
 
   const items = data?.flagged || [];
@@ -48,7 +48,7 @@ export default function AuditPanel() {
   return (
     <div className="h-full overflow-y-auto p-8 max-w-5xl mx-auto">
       <header className="mb-6">
-        <div className="font-display-italic text-4xl">Audit · associations suspectes</div>
+        <div className="font-display text-4xl">Audit · associations suspectes</div>
         <p className="mt-2 text-sm text-[var(--text-secondary)] max-w-2xl">
           Images dont la signature ArcFace s'écarte du centroïde d'identité de leur entité
           (distance &gt; 0.55, spec §5.5). Décision humaine = définitive et n'est plus
@@ -66,7 +66,7 @@ export default function AuditPanel() {
               onClick={() => setProviderFilter(f.value)}
               className={`px-2 py-0.5 text-[10px] font-mono uppercase tracking-wider border transition-colors ${
                 providerFilter === f.value
-                  ? "border-[var(--accent)] text-[var(--accent)]"
+                  ? "border-accent text-accent"
                   : "divider text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               }`}
             >
@@ -95,7 +95,7 @@ export default function AuditPanel() {
 
       <section className="mt-12 pt-8 border-t divider">
         <header className="mb-6">
-          <div className="font-display-italic text-3xl">Doublons probables</div>
+          <div className="font-display text-3xl">Doublons probables</div>
           <p className="mt-2 text-sm text-[var(--text-secondary)] max-w-2xl">
             Entités candidates à la fusion (même QID Wikidata, même nom de famille,
             ou collision d'alias). Choisir le canonical, confirmer, les autres sont
@@ -132,7 +132,7 @@ function FlaggedRow({ image, onChanged }) {
 
   return (
     <article className="border divider p-4 flex gap-4">
-      <div className="shrink-0 w-32 h-32 bg-[var(--bg-secondary)] overflow-hidden">
+      <div className="shrink-0 w-32 h-32 bg-bg-secondary overflow-hidden">
         {image.aligned_url ? (
           <img
             src={image.aligned_url}
@@ -155,7 +155,7 @@ function FlaggedRow({ image, onChanged }) {
         </div>
         <Link
           to={`/${image.entity_slug}`}
-          className="font-display-italic text-2xl hover:text-[var(--accent)] transition-colors"
+          className="font-display text-2xl hover:text-accent transition-colors"
         >
           {image.entity_name}
         </Link>
@@ -170,7 +170,7 @@ function FlaggedRow({ image, onChanged }) {
         )}
 
         {image.flagged_by === "human" ? (
-          <div className="mt-2 text-xs font-mono text-[var(--accent)]">
+          <div className="mt-2 text-xs font-mono text-accent">
             ⚠ signalée manuellement
             {image.identity_match_score !== null && image.identity_match_score !== undefined && (
               <span className="text-[var(--text-secondary)] ml-2">
@@ -179,7 +179,7 @@ function FlaggedRow({ image, onChanged }) {
             )}
           </div>
         ) : (
-          <div className="mt-2 text-xs font-mono text-[var(--accent)]">
+          <div className="mt-2 text-xs font-mono text-accent">
             ⚠ distance ArcFace {image.identity_match_score?.toFixed(3)} (seuil 0.55)
           </div>
         )}
@@ -190,19 +190,19 @@ function FlaggedRow({ image, onChanged }) {
               <button
                 onClick={() => confirmMut.mutate()}
                 title="L'attribution actuelle est correcte — ArcFace s'est trompé"
-                className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+                className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider hover:border-accent hover:text-accent transition-colors"
               >
                 ✓ Confirmer
               </button>
               <button
                 onClick={() => setReassigning(true)}
-                className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+                className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider hover:border-accent hover:text-accent transition-colors"
               >
                 ⤴ Réassocier à…
               </button>
               <button
                 onClick={() => setConfirmingDelete(true)}
-                className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider text-[var(--text-secondary)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition-colors"
+                className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider text-[var(--text-secondary)] hover:border-accent hover:text-accent transition-colors"
               >
                 ⌫ Supprimer
               </button>
@@ -213,7 +213,7 @@ function FlaggedRow({ image, onChanged }) {
             <>
               <button
                 onClick={() => deleteMut.mutate()}
-                className="px-3 py-1 border border-[var(--accent)] text-xs font-mono uppercase tracking-wider text-[var(--accent)] animate-pulse"
+                className="px-3 py-1 border border-accent text-xs font-mono uppercase tracking-wider text-accent animate-pulse"
               >
                 ⚠ Confirmer suppression
               </button>
@@ -256,7 +256,7 @@ function SourceProviderBadge({ provider }) {
   const label = provider.toUpperCase();
   return (
     <span
-      className="px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-wider rounded bg-[var(--accent)]/20 text-[var(--accent)] border border-[var(--accent)]"
+      className="px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-wider rounded bg-accent/20 text-accent border border-accent"
       title={`Image hors corpus WUDD (origine ${provider}) — pas de caption d'article, ArcFace est le seul signal de qualification`}
     >
       {label === "DDG" ? "🦆 ddg" : label.toLowerCase()}
@@ -271,7 +271,7 @@ function OriginBadge({ by }) {
   if (by === "human") {
     return (
       <span
-        className="px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-wider rounded bg-[var(--accent)] text-white"
+        className="px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-wider rounded bg-accent text-white"
         title="Signalée manuellement par l'utilisateur"
       >
         humain
@@ -280,7 +280,7 @@ function OriginBadge({ by }) {
   }
   return (
     <span
-      className="px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-wider rounded bg-[var(--bg-secondary)] text-[var(--text-secondary)]"
+      className="px-1.5 py-0.5 text-[9px] font-mono uppercase tracking-wider rounded bg-bg-secondary text-[var(--text-secondary)]"
       title="Détectée par l'audit ArcFace (distance > 0.55)"
     >
       arcface
@@ -308,7 +308,7 @@ function ReassignSearch({ onCancel, onSelect, currentSlug }) {
           value={q}
           onChange={(e) => setQ(e.target.value)}
           placeholder="chercher entité cible…"
-          className="px-2 py-1 border divider text-xs font-mono bg-transparent flex-1 max-w-md outline-none focus:border-[var(--accent)]"
+          className="px-2 py-1 border divider text-xs font-mono bg-transparent flex-1 max-w-md outline-none focus:border-accent"
         />
         <button
           onClick={onCancel}
@@ -323,7 +323,7 @@ function ReassignSearch({ onCancel, onSelect, currentSlug }) {
             <li key={e.id}>
               <button
                 onClick={() => onSelect(e.slug)}
-                className="w-full text-left px-2 py-1 text-sm font-display-italic hover:bg-[var(--bg-secondary)] transition-colors flex justify-between"
+                className="w-full text-left px-2 py-1 text-sm font-display hover:bg-bg-secondary transition-colors flex justify-between"
               >
                 <span>{e.name}</span>
                 <span className="text-xs font-mono text-[var(--text-secondary)]">

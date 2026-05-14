@@ -33,7 +33,7 @@ export default function App() {
     <div className="h-screen flex flex-col">
       <header className="px-8 py-3 border-b divider flex items-baseline justify-between gap-6">
         <Link to="/" className="hover:opacity-80 transition-opacity">
-          <span className="font-display-italic text-2xl">FACE.ai</span>
+          <span className="font-display text-2xl">FACE.ai</span>
           <span className="ml-3 italic text-xs text-[var(--text-secondary)]">
             portrait automatique de l'espace médiatique
           </span>
@@ -46,13 +46,13 @@ export default function App() {
             to="/audit"
             className={`transition-colors ${
               onAuditRoute
-                ? "text-[var(--accent)]"
+                ? "text-accent"
                 : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             }`}
           >
             Audit
             {flaggedCount > 0 && (
-              <span className="ml-1.5 px-1.5 py-0.5 text-[10px] bg-[var(--accent)] text-white rounded">
+              <span className="ml-1.5 px-1.5 py-0.5 text-[10px] bg-accent text-white rounded">
                 {flaggedCount}
               </span>
             )}
@@ -61,7 +61,7 @@ export default function App() {
             to="/admin"
             className={`transition-colors ${
               onAdminRoute
-                ? "text-[var(--accent)]"
+                ? "text-accent"
                 : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
             }`}
           >
@@ -105,7 +105,7 @@ export default function App() {
           </Routes>
         </main>
       </div>
-      <AmbientDebug />
+      {import.meta.env.DEV && <AmbientDebug />}
     </div>
   );
 }
