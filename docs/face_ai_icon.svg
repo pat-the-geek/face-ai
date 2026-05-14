@@ -1,0 +1,186 @@
+<svg width="680" height="680" viewBox="0 0 680 680" role="img" xmlns="http://www.w3.org/2000/svg">
+  <title>FACE.ai app icon</title>
+  <desc>Icône FACE.ai avec buddy humain, maillage 3D et annotations biométriques en bleu</desc>
+
+  <defs>
+    <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#4A90D9"/>
+      <stop offset="100%" stop-color="#1A4F8A"/>
+    </linearGradient>
+    <linearGradient id="bodyGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#B5D4F4"/>
+      <stop offset="100%" stop-color="#378ADD"/>
+    </linearGradient>
+    <linearGradient id="faceGrad" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#D0E8FA"/>
+      <stop offset="100%" stop-color="#A0C8F0"/>
+    </linearGradient>
+    <clipPath id="iconClip">
+      <rect x="0" y="0" width="680" height="680" rx="148"/>
+    </clipPath>
+  </defs>
+
+  <rect x="0" y="0" width="680" height="680" rx="148" fill="url(#bgGrad)"/>
+
+  <g clip-path="url(#iconClip)">
+
+    <!-- body / shoulders -->
+    <ellipse cx="340" cy="760" rx="260" ry="210" fill="url(#bodyGrad)" opacity="0.95"/>
+    <!-- neck -->
+    <rect x="310" y="430" width="60" height="80" rx="30" fill="#B5D4F4"/>
+    <!-- head -->
+    <circle cx="340" cy="330" r="178" fill="url(#faceGrad)"/>
+
+    <!-- === 3D mesh landmarks === -->
+    <!-- brow left -->
+    <circle cx="270" cy="272" r="4.5" fill="#185FA5" opacity="0.7"/>
+    <circle cx="295" cy="260" r="4.5" fill="#185FA5" opacity="0.7"/>
+    <circle cx="320" cy="255" r="4.5" fill="#185FA5" opacity="0.7"/>
+    <!-- brow right -->
+    <circle cx="360" cy="255" r="4.5" fill="#185FA5" opacity="0.7"/>
+    <circle cx="385" cy="260" r="4.5" fill="#185FA5" opacity="0.7"/>
+    <circle cx="410" cy="272" r="4.5" fill="#185FA5" opacity="0.7"/>
+    <!-- left eye -->
+    <circle cx="278" cy="304" r="4.5" fill="#185FA5" opacity="0.9"/>
+    <circle cx="300" cy="294" r="4.5" fill="#185FA5" opacity="0.9"/>
+    <circle cx="322" cy="304" r="4.5" fill="#185FA5" opacity="0.9"/>
+    <circle cx="300" cy="314" r="4.5" fill="#185FA5" opacity="0.9"/>
+    <!-- right eye -->
+    <circle cx="358" cy="304" r="4.5" fill="#185FA5" opacity="0.9"/>
+    <circle cx="380" cy="294" r="4.5" fill="#185FA5" opacity="0.9"/>
+    <circle cx="402" cy="304" r="4.5" fill="#185FA5" opacity="0.9"/>
+    <circle cx="380" cy="314" r="4.5" fill="#185FA5" opacity="0.9"/>
+    <!-- nose -->
+    <circle cx="340" cy="322" r="4" fill="#185FA5" opacity="0.7"/>
+    <circle cx="340" cy="347" r="4" fill="#185FA5" opacity="0.7"/>
+    <circle cx="320" cy="362" r="4" fill="#185FA5" opacity="0.7"/>
+    <circle cx="340" cy="366" r="4" fill="#185FA5" opacity="0.7"/>
+    <circle cx="360" cy="362" r="4" fill="#185FA5" opacity="0.7"/>
+    <!-- mouth -->
+    <circle cx="310" cy="398" r="4" fill="#185FA5" opacity="0.85"/>
+    <circle cx="326" cy="390" r="4" fill="#185FA5" opacity="0.85"/>
+    <circle cx="340" cy="388" r="4" fill="#185FA5" opacity="0.85"/>
+    <circle cx="354" cy="390" r="4" fill="#185FA5" opacity="0.85"/>
+    <circle cx="370" cy="398" r="4" fill="#185FA5" opacity="0.85"/>
+    <circle cx="340" cy="410" r="4" fill="#185FA5" opacity="0.7"/>
+    <!-- jaw -->
+    <circle cx="220" cy="362" r="4" fill="#185FA5" opacity="0.5"/>
+    <circle cx="228" cy="400" r="4" fill="#185FA5" opacity="0.5"/>
+    <circle cx="248" cy="432" r="4" fill="#185FA5" opacity="0.5"/>
+    <circle cx="280" cy="454" r="4" fill="#185FA5" opacity="0.5"/>
+    <circle cx="310" cy="464" r="4" fill="#185FA5" opacity="0.5"/>
+    <circle cx="340" cy="467" r="4" fill="#185FA5" opacity="0.5"/>
+    <circle cx="370" cy="464" r="4" fill="#185FA5" opacity="0.5"/>
+    <circle cx="400" cy="454" r="4" fill="#185FA5" opacity="0.5"/>
+    <circle cx="432" cy="432" r="4" fill="#185FA5" opacity="0.5"/>
+    <circle cx="452" cy="400" r="4" fill="#185FA5" opacity="0.5"/>
+    <circle cx="460" cy="362" r="4" fill="#185FA5" opacity="0.5"/>
+    <!-- cheeks -->
+    <circle cx="230" cy="330" r="4" fill="#185FA5" opacity="0.5"/>
+    <circle cx="450" cy="330" r="4" fill="#185FA5" opacity="0.5"/>
+
+    <!-- mesh lines eyes -->
+    <line x1="278" y1="304" x2="300" y2="294" stroke="#185FA5" stroke-width="1.2" opacity="0.4" fill="none"/>
+    <line x1="300" y1="294" x2="322" y2="304" stroke="#185FA5" stroke-width="1.2" opacity="0.4" fill="none"/>
+    <line x1="322" y1="304" x2="300" y2="314" stroke="#185FA5" stroke-width="1.2" opacity="0.4" fill="none"/>
+    <line x1="300" y1="314" x2="278" y2="304" stroke="#185FA5" stroke-width="1.2" opacity="0.4" fill="none"/>
+    <line x1="278" y1="304" x2="322" y2="304" stroke="#185FA5" stroke-width="1" opacity="0.25" fill="none"/>
+    <line x1="358" y1="304" x2="380" y2="294" stroke="#185FA5" stroke-width="1.2" opacity="0.4" fill="none"/>
+    <line x1="380" y1="294" x2="402" y2="304" stroke="#185FA5" stroke-width="1.2" opacity="0.4" fill="none"/>
+    <line x1="402" y1="304" x2="380" y2="314" stroke="#185FA5" stroke-width="1.2" opacity="0.4" fill="none"/>
+    <line x1="380" y1="314" x2="358" y2="304" stroke="#185FA5" stroke-width="1.2" opacity="0.4" fill="none"/>
+    <line x1="358" y1="304" x2="402" y2="304" stroke="#185FA5" stroke-width="1" opacity="0.25" fill="none"/>
+    <!-- brow lines -->
+    <line x1="270" y1="272" x2="295" y2="260" stroke="#185FA5" stroke-width="1.2" opacity="0.35" fill="none"/>
+    <line x1="295" y1="260" x2="320" y2="255" stroke="#185FA5" stroke-width="1.2" opacity="0.35" fill="none"/>
+    <line x1="360" y1="255" x2="385" y2="260" stroke="#185FA5" stroke-width="1.2" opacity="0.35" fill="none"/>
+    <line x1="385" y1="260" x2="410" y2="272" stroke="#185FA5" stroke-width="1.2" opacity="0.35" fill="none"/>
+    <!-- nose lines -->
+    <line x1="340" y1="322" x2="340" y2="366" stroke="#185FA5" stroke-width="1.2" opacity="0.4" fill="none"/>
+    <line x1="320" y1="362" x2="360" y2="362" stroke="#185FA5" stroke-width="1.2" opacity="0.3" fill="none"/>
+    <!-- mouth lines -->
+    <line x1="310" y1="398" x2="326" y2="390" stroke="#185FA5" stroke-width="1.2" opacity="0.4" fill="none"/>
+    <line x1="326" y1="390" x2="340" y2="388" stroke="#185FA5" stroke-width="1.2" opacity="0.4" fill="none"/>
+    <line x1="340" y1="388" x2="354" y2="390" stroke="#185FA5" stroke-width="1.2" opacity="0.4" fill="none"/>
+    <line x1="354" y1="390" x2="370" y2="398" stroke="#185FA5" stroke-width="1.2" opacity="0.4" fill="none"/>
+    <line x1="310" y1="398" x2="340" y2="410" stroke="#185FA5" stroke-width="1" opacity="0.3" fill="none"/>
+    <line x1="370" y1="398" x2="340" y2="410" stroke="#185FA5" stroke-width="1" opacity="0.3" fill="none"/>
+    <!-- jaw lines -->
+    <line x1="220" y1="362" x2="228" y2="400" stroke="#185FA5" stroke-width="1" opacity="0.28" fill="none"/>
+    <line x1="228" y1="400" x2="248" y2="432" stroke="#185FA5" stroke-width="1" opacity="0.28" fill="none"/>
+    <line x1="248" y1="432" x2="280" y2="454" stroke="#185FA5" stroke-width="1" opacity="0.28" fill="none"/>
+    <line x1="280" y1="454" x2="310" y2="464" stroke="#185FA5" stroke-width="1" opacity="0.28" fill="none"/>
+    <line x1="310" y1="464" x2="340" y2="467" stroke="#185FA5" stroke-width="1" opacity="0.28" fill="none"/>
+    <line x1="340" y1="467" x2="370" y2="464" stroke="#185FA5" stroke-width="1" opacity="0.28" fill="none"/>
+    <line x1="370" y1="464" x2="400" y2="454" stroke="#185FA5" stroke-width="1" opacity="0.28" fill="none"/>
+    <line x1="400" y1="454" x2="432" y2="432" stroke="#185FA5" stroke-width="1" opacity="0.28" fill="none"/>
+    <line x1="432" y1="432" x2="452" y2="400" stroke="#185FA5" stroke-width="1" opacity="0.28" fill="none"/>
+    <line x1="452" y1="400" x2="460" y2="362" stroke="#185FA5" stroke-width="1" opacity="0.28" fill="none"/>
+    <!-- cheeks to jaw -->
+    <line x1="230" y1="330" x2="220" y2="362" stroke="#185FA5" stroke-width="1" opacity="0.22" fill="none"/>
+    <line x1="450" y1="330" x2="460" y2="362" stroke="#185FA5" stroke-width="1" opacity="0.22" fill="none"/>
+    <!-- forehead guides -->
+    <line x1="270" y1="218" x2="410" y2="218" stroke="#185FA5" stroke-width="1" opacity="0.18" fill="none"/>
+    <line x1="255" y1="242" x2="425" y2="242" stroke="#185FA5" stroke-width="1" opacity="0.18" fill="none"/>
+    <line x1="340" y1="192" x2="340" y2="255" stroke="#185FA5" stroke-width="1" opacity="0.18" fill="none"/>
+
+    <!-- === SCAN BRACKETS === -->
+    <path d="M190 190 L190 232 M190 190 L232 190" stroke="#E6F1FB" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.9"/>
+    <path d="M490 190 L490 232 M490 190 L448 190" stroke="#E6F1FB" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.9"/>
+    <path d="M190 490 L190 448 M190 490 L232 490" stroke="#E6F1FB" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.9"/>
+    <path d="M490 490 L490 448 M490 490 L448 490" stroke="#E6F1FB" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.9"/>
+
+    <!-- === ANNOTATIONS BIOMÉTRIQUES — gauche === -->
+    <line x1="270" y1="304" x2="145" y2="292" stroke="#E6F1FB" stroke-width="1" stroke-dasharray="3,3" opacity="0.7" fill="none"/>
+    <rect x="56" y="278" width="88" height="30" rx="5" fill="#0C447C" opacity="0.88"/>
+    <text x="100" y="290" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="9" font-weight="700" fill="#E6F1FB" opacity="0.95">EYE-L</text>
+    <text x="100" y="302" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="8.5" fill="#85B7EB">x:278 y:304</text>
+
+    <line x1="306" y1="402" x2="145" y2="396" stroke="#E6F1FB" stroke-width="1" stroke-dasharray="3,3" opacity="0.7" fill="none"/>
+    <rect x="46" y="381" width="98" height="30" rx="5" fill="#0C447C" opacity="0.88"/>
+    <text x="95" y="393" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="9" font-weight="700" fill="#E6F1FB" opacity="0.95">EMOTION</text>
+    <text x="95" y="404" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="8.5" fill="#85B7EB">neutral 94%</text>
+
+    <line x1="240" y1="438" x2="145" y2="448" stroke="#E6F1FB" stroke-width="1" stroke-dasharray="3,3" opacity="0.6" fill="none"/>
+    <rect x="46" y="434" width="98" height="30" rx="5" fill="#0C447C" opacity="0.88"/>
+    <text x="95" y="446" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="9" font-weight="700" fill="#E6F1FB" opacity="0.95">JAW-L</text>
+    <text x="95" y="457" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="8.5" fill="#85B7EB">sym: 98.2%</text>
+
+    <!-- === ANNOTATIONS BIOMÉTRIQUES — droite === -->
+    <line x1="408" y1="304" x2="535" y2="292" stroke="#E6F1FB" stroke-width="1" stroke-dasharray="3,3" opacity="0.7" fill="none"/>
+    <rect x="536" y="278" width="88" height="30" rx="5" fill="#0C447C" opacity="0.88"/>
+    <text x="580" y="290" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="9" font-weight="700" fill="#E6F1FB" opacity="0.95">EYE-R</text>
+    <text x="580" y="302" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="8.5" fill="#85B7EB">x:402 y:304</text>
+
+    <line x1="364" y1="347" x2="535" y2="340" stroke="#E6F1FB" stroke-width="1" stroke-dasharray="3,3" opacity="0.7" fill="none"/>
+    <rect x="536" y="326" width="100" height="30" rx="5" fill="#0C447C" opacity="0.88"/>
+    <text x="586" y="338" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="9" font-weight="700" fill="#E6F1FB" opacity="0.95">DEPTH</text>
+    <text x="586" y="349" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="8.5" fill="#85B7EB">z: −12.4 mm</text>
+
+    <line x1="440" y1="438" x2="535" y2="448" stroke="#E6F1FB" stroke-width="1" stroke-dasharray="3,3" opacity="0.6" fill="none"/>
+    <rect x="536" y="434" width="100" height="30" rx="5" fill="#0C447C" opacity="0.88"/>
+    <text x="586" y="446" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="9" font-weight="700" fill="#E6F1FB" opacity="0.95">AGE EST.</text>
+    <text x="586" y="457" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="8.5" fill="#85B7EB">32 ± 3 yrs</text>
+
+    <!-- === MINI PANEL EN HAUT === -->
+    <rect x="250" y="148" width="180" height="28" rx="6" fill="#042C53" opacity="0.82"/>
+    <rect x="258" y="160" width="80" height="7" rx="3.5" fill="#185FA5" opacity="0.5"/>
+    <rect x="258" y="160" width="74" height="7" rx="3.5" fill="#E6F1FB" opacity="0.9"/>
+    <text x="348" y="169" font-family="system-ui, -apple-system, monospace" font-size="9" font-weight="700" fill="#E6F1FB" opacity="0.95">MATCH 97%</text>
+
+    <!-- === INDICATEUR Z-DEPTH === -->
+    <text x="60" y="568" font-family="system-ui, -apple-system, monospace" font-size="9" font-weight="600" fill="#B5D4F4" opacity="0.75">Z</text>
+    <line x1="70" y1="564" x2="100" y2="564" stroke="#B5D4F4" stroke-width="1.5" opacity="0.6" fill="none"/>
+    <polygon points="100,560 107,564 100,568" fill="#B5D4F4" opacity="0.6"/>
+    <text x="60" y="582" font-family="system-ui, -apple-system, monospace" font-size="9" font-weight="600" fill="#B5D4F4" opacity="0.75">Y</text>
+    <line x1="70" y1="582" x2="70" y2="552" stroke="#B5D4F4" stroke-width="1.5" opacity="0.6" fill="none"/>
+    <polygon points="66,552 70,545 74,552" fill="#B5D4F4" opacity="0.6"/>
+
+    <!-- 468 pts label -->
+    <text x="340" y="544" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="8.5" fill="#B5D4F4" opacity="0.65">468 landmarks</text>
+
+  </g>
+
+  <!-- FACE.ai label -->
+  <text x="340" y="628" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="52" font-weight="700" letter-spacing="2" fill="#E6F1FB" opacity="0.95">FACE.ai</text>
+</svg>

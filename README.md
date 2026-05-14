@@ -1,5 +1,9 @@
 # FACE.ai
 
+<p align="center">
+  <img src="docs/face_ai_icon.jpg" alt="FACE.ai icon" width="180"/>
+</p>
+
 > Outil de veille interne sur corpus maîtrisé d'articles de presse,
 > avec dimension artistique assumée (Flipbook, composite Galton,
 > esthétique forensique-musée). Satellite de [WUDD.ai](https://wudd.ai).
