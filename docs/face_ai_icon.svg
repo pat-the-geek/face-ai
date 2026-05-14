@@ -1,6 +1,4 @@
 <svg width="680" height="680" viewBox="0 0 680 680" role="img" xmlns="http://www.w3.org/2000/svg">
-  <title>FACE.ai app icon</title>
-  <desc>Icône FACE.ai avec buddy humain, maillage 3D et annotations biométriques en bleu</desc>
 
   <defs>
     <linearGradient id="bgGrad" x1="0" y1="0" x2="1" y2="1">
@@ -131,56 +129,30 @@
     <path d="M490 490 L490 448 M490 490 L448 490" stroke="#E6F1FB" stroke-width="4" stroke-linecap="round" fill="none" opacity="0.9"/>
 
     <!-- === ANNOTATIONS BIOMÉTRIQUES — gauche === -->
-    <line x1="270" y1="304" x2="145" y2="292" stroke="#E6F1FB" stroke-width="1" stroke-dasharray="3,3" opacity="0.7" fill="none"/>
-    <rect x="56" y="278" width="88" height="30" rx="5" fill="#0C447C" opacity="0.88"/>
-    <text x="100" y="290" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="9" font-weight="700" fill="#E6F1FB" opacity="0.95">EYE-L</text>
-    <text x="100" y="302" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="8.5" fill="#85B7EB">x:278 y:304</text>
+    <line x1="270" y1="304" x2="145" y2="292" stroke="#93C5FD" stroke-width="1" stroke-dasharray="3,3" opacity="0.7" fill="none"/>
+    <rect x="56" y="278" width="88" height="30" rx="5" fill="#3B82F6" opacity="0.88"/>
 
-    <line x1="306" y1="402" x2="145" y2="396" stroke="#E6F1FB" stroke-width="1" stroke-dasharray="3,3" opacity="0.7" fill="none"/>
-    <rect x="46" y="381" width="98" height="30" rx="5" fill="#0C447C" opacity="0.88"/>
-    <text x="95" y="393" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="9" font-weight="700" fill="#E6F1FB" opacity="0.95">EMOTION</text>
-    <text x="95" y="404" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="8.5" fill="#85B7EB">neutral 94%</text>
+    <line x1="306" y1="402" x2="145" y2="396" stroke="#FDBA74" stroke-width="1" stroke-dasharray="3,3" opacity="0.7" fill="none"/>
+    <rect x="46" y="381" width="98" height="30" rx="5" fill="#F97316" opacity="0.88"/>
 
-    <line x1="240" y1="438" x2="145" y2="448" stroke="#E6F1FB" stroke-width="1" stroke-dasharray="3,3" opacity="0.6" fill="none"/>
-    <rect x="46" y="434" width="98" height="30" rx="5" fill="#0C447C" opacity="0.88"/>
-    <text x="95" y="446" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="9" font-weight="700" fill="#E6F1FB" opacity="0.95">JAW-L</text>
-    <text x="95" y="457" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="8.5" fill="#85B7EB">sym: 98.2%</text>
+    <line x1="240" y1="438" x2="145" y2="448" stroke="#FDE68A" stroke-width="1" stroke-dasharray="3,3" opacity="0.6" fill="none"/>
+    <rect x="46" y="434" width="98" height="30" rx="5" fill="#F59E0B" opacity="0.88"/>
 
     <!-- === ANNOTATIONS BIOMÉTRIQUES — droite === -->
-    <line x1="408" y1="304" x2="535" y2="292" stroke="#E6F1FB" stroke-width="1" stroke-dasharray="3,3" opacity="0.7" fill="none"/>
-    <rect x="536" y="278" width="88" height="30" rx="5" fill="#0C447C" opacity="0.88"/>
-    <text x="580" y="290" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="9" font-weight="700" fill="#E6F1FB" opacity="0.95">EYE-R</text>
-    <text x="580" y="302" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="8.5" fill="#85B7EB">x:402 y:304</text>
+    <line x1="408" y1="304" x2="535" y2="292" stroke="#BAE6FD" stroke-width="1" stroke-dasharray="3,3" opacity="0.7" fill="none"/>
+    <rect x="536" y="278" width="88" height="30" rx="5" fill="#0EA5E9" opacity="0.88"/>
 
-    <line x1="364" y1="347" x2="535" y2="340" stroke="#E6F1FB" stroke-width="1" stroke-dasharray="3,3" opacity="0.7" fill="none"/>
-    <rect x="536" y="326" width="100" height="30" rx="5" fill="#0C447C" opacity="0.88"/>
-    <text x="586" y="338" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="9" font-weight="700" fill="#E6F1FB" opacity="0.95">DEPTH</text>
-    <text x="586" y="349" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="8.5" fill="#85B7EB">z: −12.4 mm</text>
+    <line x1="364" y1="347" x2="535" y2="340" stroke="#93C5FD" stroke-width="1" stroke-dasharray="3,3" opacity="0.7" fill="none"/>
+    <rect x="536" y="326" width="100" height="30" rx="5" fill="#3B82F6" opacity="0.88"/>
 
-    <line x1="440" y1="438" x2="535" y2="448" stroke="#E6F1FB" stroke-width="1" stroke-dasharray="3,3" opacity="0.6" fill="none"/>
-    <rect x="536" y="434" width="100" height="30" rx="5" fill="#0C447C" opacity="0.88"/>
-    <text x="586" y="446" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="9" font-weight="700" fill="#E6F1FB" opacity="0.95">AGE EST.</text>
-    <text x="586" y="457" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="8.5" fill="#85B7EB">32 ± 3 yrs</text>
-
-    <!-- === MINI PANEL EN HAUT === -->
-    <rect x="250" y="148" width="180" height="28" rx="6" fill="#042C53" opacity="0.82"/>
-    <rect x="258" y="160" width="80" height="7" rx="3.5" fill="#185FA5" opacity="0.5"/>
-    <rect x="258" y="160" width="74" height="7" rx="3.5" fill="#E6F1FB" opacity="0.9"/>
-    <text x="348" y="169" font-family="system-ui, -apple-system, monospace" font-size="9" font-weight="700" fill="#E6F1FB" opacity="0.95">MATCH 97%</text>
+    <line x1="440" y1="438" x2="535" y2="448" stroke="#FDBA74" stroke-width="1" stroke-dasharray="3,3" opacity="0.6" fill="none"/>
+    <rect x="536" y="434" width="100" height="30" rx="5" fill="#F97316" opacity="0.88"/>
 
     <!-- === INDICATEUR Z-DEPTH === -->
-    <text x="60" y="568" font-family="system-ui, -apple-system, monospace" font-size="9" font-weight="600" fill="#B5D4F4" opacity="0.75">Z</text>
     <line x1="70" y1="564" x2="100" y2="564" stroke="#B5D4F4" stroke-width="1.5" opacity="0.6" fill="none"/>
     <polygon points="100,560 107,564 100,568" fill="#B5D4F4" opacity="0.6"/>
-    <text x="60" y="582" font-family="system-ui, -apple-system, monospace" font-size="9" font-weight="600" fill="#B5D4F4" opacity="0.75">Y</text>
     <line x1="70" y1="582" x2="70" y2="552" stroke="#B5D4F4" stroke-width="1.5" opacity="0.6" fill="none"/>
     <polygon points="66,552 70,545 74,552" fill="#B5D4F4" opacity="0.6"/>
 
-    <!-- 468 pts label -->
-    <text x="340" y="544" text-anchor="middle" font-family="system-ui, -apple-system, monospace" font-size="8.5" fill="#B5D4F4" opacity="0.65">468 landmarks</text>
-
   </g>
-
-  <!-- FACE.ai label -->
-  <text x="340" y="628" text-anchor="middle" font-family="system-ui, -apple-system, sans-serif" font-size="52" font-weight="700" letter-spacing="2" fill="#E6F1FB" opacity="0.95">FACE.ai</text>
 </svg>
