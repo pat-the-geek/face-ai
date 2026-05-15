@@ -31,12 +31,19 @@ export default function App() {
 
   return (
     <div className="h-screen flex flex-col">
-      <header className="px-8 py-3 border-b divider flex items-baseline justify-between gap-6">
-        <Link to="/" className="hover:opacity-80 transition-opacity">
-          <span className="font-display text-2xl">FACE.ai</span>
-          <span className="ml-3 italic text-xs text-[var(--text-secondary)]">
-            portrait automatique de l'espace médiatique
-          </span>
+      <header className="px-8 py-3 border-b divider flex items-center justify-between gap-6">
+        <Link to="/" className="hover:opacity-80 transition-opacity flex flex-col items-start">
+          <img
+            src="/face_ai_icon.jpg"
+            alt="FACE.ai"
+            className="w-8 h-8 rounded object-cover mb-1"
+          />
+          <div>
+            <span className="font-display text-2xl">FACE.ai</span>
+            <span className="ml-3 italic text-xs text-[var(--text-secondary)]">
+              portrait automatique de l'espace médiatique
+            </span>
+          </div>
         </Link>
         <div className="flex items-center gap-5 text-xs font-mono uppercase tracking-wider">
           <GlobalSearch />
