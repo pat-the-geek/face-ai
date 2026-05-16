@@ -6,22 +6,31 @@ services:
       dockerfile: docker/backend.Dockerfile
     restart: unless-stopped
     volumes:
-      - ./backend:/app
       - ./data:/data
       - ./static:/static
       - ./models:/models
     environment:
       - FACE_AI_DB=/data/face_ai.db
       - FACE_AI_STATIC=/static
-      - ENV=development
-      # DDG picker activé (cf. CLAUDE.md §1.5 — élargit le périmètre
-      # hors WUDD, ingestion par validation manuelle dans l'UI)
-      - FACE_AI_ENABLE_DDG=true
+      - ENV=production
+      - FACE_AI_ENABLE_DDG=${FACE_AI_ENABLE_DDG:-true}
     ports:
-      - "127.0.0.1:8010:8000"
+      - "${FACE_AI_BIND_IP:-100.72.122.51}:8010:8000"
     command: >
       sh -c "alembic upgrade head &&
-             uvicorn api:app --host 0.0.0.0 --port 8000 --reload"
+             uvicorn api:app --host 0.0.0.0 --port 8000"
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "python",
+          "-c",
+          "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=5).read()",
+        ]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
 
   worker:
     build:
@@ -29,7 +38,6 @@ services:
       dockerfile: docker/backend.Dockerfile
     restart: unless-stopped
     volumes:
-      - ./backend:/app
       - ./data:/data
       - ./static:/static
       - ./models:/models
@@ -39,7 +47,8 @@ services:
       - FACE_AI_STATIC=/static
     command: python worker.py
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 
   mcp:
     build:
@@ -47,7 +56,6 @@ services:
       dockerfile: docker/backend.Dockerfile
     restart: unless-stopped
     volumes:
-      - ./backend:/app
       - ./data:/data
       - ./static:/static
       - ./models:/models
@@ -55,26 +63,21 @@ services:
       - FACE_AI_DB=/data/face_ai.db
       - FACE_AI_STATIC=/static
     ports:
-      - "127.0.0.1:8011:8001"
+      - "${FACE_AI_BIND_IP:-100.72.122.51}:8011:8001"
     command: python face_ai_mcp_server.py
     depends_on:
-      - api
+      api:
+        condition: service_healthy
 
   frontend:
     build:
       context: .
       dockerfile: docker/frontend.Dockerfile
-      target: dev
+      target: prod
     restart: unless-stopped
-    volumes:
-      - ./frontend/src:/app/src
-      - ./frontend/index.html:/app/index.html
-      - ./frontend/vite.config.js:/app/vite.config.js
-      - ./frontend/tailwind.config.js:/app/tailwind.config.js
-      - ./frontend/postcss.config.js:/app/postcss.config.js
-    environment:
-      - VITE_API_TARGET=http://api:8000
     ports:
-      - "127.0.0.1:5173:5173"
+      - "${FACE_AI_BIND_IP:-100.72.122.51}:80:80"
     depends_on:
-      - api
+      api:
+        condition: service_healthy
+

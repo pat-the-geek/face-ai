@@ -11,7 +11,7 @@ CMD ["npm", "run", "dev"]
 FROM node:20-alpine AS build
 WORKDIR /app
 COPY frontend/package*.json ./
-RUN npm ci
+RUN npm install
 COPY frontend/ .
 RUN npm run build
 
@@ -19,4 +19,5 @@ RUN npm run build
 FROM nginx:alpine AS prod
 COPY --from=build /app/dist /usr/share/nginx/html
 COPY docker/nginx.conf /etc/nginx/conf.d/default.conf
+RUN chmod -R a+r /usr/share/nginx/html
 EXPOSE 80

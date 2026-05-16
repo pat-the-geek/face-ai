@@ -46,12 +46,67 @@ cp .env.example .env
 docker compose up
 ```
 
-- API : http://127.0.0.1:8010
-- Frontend : http://127.0.0.1:5173
-- MCP (SSE) : http://127.0.0.1:8011/sse
+- API : <http://127.0.0.1:8010>
+- Frontend : <http://127.0.0.1:5173>
+- MCP (SSE) : <http://127.0.0.1:8011/sse>
 
 Le worker télécharge les modèles InsightFace (~120 MB) au premier
 appel dans `/root/.insightface` (monté en volume `models/insightface_home/`).
+
+### Déploiement prod local / Tailscale
+
+Le déploiement prod réutilise explicitement les dossiers hôte existants.
+Les données utiles restent donc sur disque dans `data/`, `static/` et
+`models/`, pas dans un volume Docker anonyme.
+
+```bash
+tar -czf deploy_backups/pre-prod-$(date +%Y%m%d-%H%M%S).tar.gz data static models
+docker compose -f docker-compose.prod.yml up -d --build
+```
+
+- Frontend prod : <http://100.72.122.51>
+- API : <http://100.72.122.51:8010>
+- MCP (SSE) : <http://100.72.122.51:8011/sse>
+
+Le fichier [docker-compose.prod.yml](docker-compose.prod.yml) est autonome : il
+supprime les bind mounts de code du mode dev, garde les bind mounts de données,
+sert le frontend via Nginx et attend que l'API soit saine avant de démarrer
+les services dépendants.
+
+Si l'adresse Tailscale change, exporter `FACE_AI_BIND_IP` avant le déploiement
+pour rebinder les ports sans modifier le fichier :
+
+```bash
+export FACE_AI_BIND_IP=100.72.122.51
+docker compose -f docker-compose.prod.yml up -d
+```
+
+### Sauvegarde, restauration, redémarrage
+
+Sauvegarde applicative SQLite immédiate :
+
+```bash
+curl -X POST http://127.0.0.1:8010/admin/backup-now
+curl http://127.0.0.1:8010/admin/backups
+```
+
+Restauration d'un backup SQLite géré par l'application :
+
+```bash
+curl -X POST "http://127.0.0.1:8010/admin/restore-backup?filename=daily-YYYY-MM-DD.db.gz"
+docker compose restart api worker mcp
+```
+
+Restauration complète d'un snapshot hôte pris avant déploiement :
+
+```bash
+docker compose -f docker-compose.prod.yml down
+tar -xzf deploy_backups/pre-prod-YYYYMMDD-HHMMSS.tar.gz
+docker compose -f docker-compose.prod.yml up -d
+```
+
+Après une restauration SQLite, il faut redémarrer les processus Python pour
+forcer SQLAlchemy à recharger le fichier `face_ai.db` remplacé.
 
 ### Tests
 
