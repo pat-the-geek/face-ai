@@ -9,6 +9,7 @@ services:
       - ./data:/data
       - ./static:/static
       - ./models:/models
+      - /Volumes/USB1/FACE.ai-Backup:/data/backups
     environment:
       - FACE_AI_DB=/data/face_ai.db
       - FACE_AI_STATIC=/static
@@ -42,6 +43,7 @@ services:
       - ./static:/static
       - ./models:/models
       - ./models/insightface_home:/root/.insightface
+      - /Volumes/USB1/FACE.ai-Backup:/data/backups
     environment:
       - FACE_AI_DB=/data/face_ai.db
       - FACE_AI_STATIC=/static

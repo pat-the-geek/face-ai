@@ -83,30 +83,66 @@ docker compose -f docker-compose.prod.yml up -d
 
 ### Sauvegarde, restauration, redémarrage
 
-Sauvegarde applicative SQLite immédiate :
+Trois niveaux de sauvegarde, par fréquence croissante et périmètre décroissant :
+
+#### 1. Snapshots SQLite applicatifs (automatiques — quotidien/hebdo/mensuel)
+
+Gérés par le worker (`backup_loop`). Contiennent uniquement la base de données.
+Stockés dans `/Volumes/USB1/FACE.ai-Backup/` (bind-monté sur `/data/backups/` dans les containers).
+
+Rétention : 7 daily · 4 weekly · 12 monthly.
 
 ```bash
-curl -X POST http://127.0.0.1:8010/admin/backup-now
-curl http://127.0.0.1:8010/admin/backups
+# Déclencher immédiatement
+curl -X POST http://100.72.122.51:8010/admin/backup-now
+# Lister les backups disponibles
+curl http://100.72.122.51:8010/admin/backups
 ```
 
-Restauration d'un backup SQLite géré par l'application :
+#### 2. Sauvegarde complète hebdomadaire (automatique — chaque dimanche à 02h00)
+
+DB SQLite + images (`static/originals/` + `static/aligned/`), compressé en `.tar.gz`.
+Stockée dans `/Volumes/USB1/FACE.ai-Backup/full-backup-YYYYMMDD-HHMMSS.tar.gz`.
+Rétention : 4 dernières (≈ 1 mois). Script : `scripts/backup-full.sh`, tâche launchd : `ai.face.backup-full`.
 
 ```bash
-curl -X POST "http://127.0.0.1:8010/admin/restore-backup?filename=daily-YYYY-MM-DD.db.gz"
-docker compose restart api worker mcp
+# Déclencher manuellement
+bash scripts/backup-full.sh
+# Vérifier le log
+tail /Volumes/USB1/FACE.ai-Backup/backup-full.log
+# Relancer la tâche planifiée après reboot
+launchctl load ~/Library/LaunchAgents/ai.face.backup-full.plist
 ```
 
-Restauration complète d'un snapshot hôte pris avant déploiement :
+#### 3. Snapshot pré-déploiement (manuel)
+
+Archive complète `data/` + `static/` + `models/` prise avant chaque mise à jour majeure.
+Stockée dans `deploy_backups/` (non versionné dans git).
+
+```bash
+# Créer un snapshot
+tar -czf deploy_backups/pre-prod-$(date +%Y%m%d-%H%M%S).tar.gz data static models
+```
+
+---
+
+#### Restauration depuis un snapshot SQLite applicatif
+
+```bash
+curl -X POST "http://100.72.122.51:8010/admin/restore-backup?filename=daily-YYYY-MM-DD.db.gz"
+docker compose -f docker-compose.prod.yml restart api worker mcp
+```
+
+#### Restauration complète depuis une sauvegarde complète
 
 ```bash
 docker compose -f docker-compose.prod.yml down
-tar -xzf deploy_backups/pre-prod-YYYYMMDD-HHMMSS.tar.gz
+tar -xzf /Volumes/USB1/FACE.ai-Backup/full-backup-YYYYMMDD-HHMMSS.tar.gz
 docker compose -f docker-compose.prod.yml up -d
 ```
 
-Après une restauration SQLite, il faut redémarrer les processus Python pour
-forcer SQLAlchemy à recharger le fichier `face_ai.db` remplacé.
+Après une restauration SQLite, redémarrer les processus Python pour forcer
+SQLAlchemy à recharger le fichier `face_ai.db` remplacé.
 
 ### Tests
 
