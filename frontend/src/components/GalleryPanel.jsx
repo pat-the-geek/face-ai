@@ -26,6 +26,22 @@ export default function GalleryPanel({ slug: propSlug }) {
   // Set vide = "Galton sur tout" (comportement historique). Non vide
   // = Galton sur le sous-ensemble choisi.
   const [galtonSelection, setGaltonSelection] = useState(() => new Set());
+  // Panel rétractable bio + activité — replié par défaut pour laisser plus de
+  // place à la galerie (le cœur du produit). Persistance localStorage.
+  const [detailsOpen, setDetailsOpen] = useState(() => {
+    try {
+      return localStorage.getItem("face_ai_details_open") === "1";
+    } catch {
+      return false;
+    }
+  });
+  useEffect(() => {
+    try {
+      localStorage.setItem("face_ai_details_open", detailsOpen ? "1" : "0");
+    } catch {
+      /* navigation privée */
+    }
+  }, [detailsOpen]);
 
   const { data, isLoading, error } = useEntityImages(slug, {
     pose: pose || undefined,
@@ -127,13 +143,17 @@ export default function GalleryPanel({ slug: propSlug }) {
         galtonImages={galtonImages}
         galtonSelectionCount={galtonSelection.size}
         onClearGaltonSelection={clearGaltonSelection}
+        detailsOpen={detailsOpen}
+        onToggleDetails={() => setDetailsOpen((v) => !v)}
       />
       <div className="flex-1 overflow-y-auto p-8">
-        <EntityTimeline
-          slug={slug}
-          selectedDate={dateFilter}
-          onSelectDate={setDateFilter}
-        />
+        {detailsOpen && (
+          <EntityTimeline
+            slug={slug}
+            selectedDate={dateFilter}
+            onSelectDate={setDateFilter}
+          />
+        )}
         {dateFilter && (
           <div className="mb-4 px-3 py-2 border border-accent flex items-center justify-between text-xs font-mono">
             <span>

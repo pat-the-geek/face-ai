@@ -122,6 +122,18 @@ class EntityListItem(BaseModel):
     is_favorite: bool = False
 
 
+class EntityMapItem(BaseModel):
+    """Entité géolocalisée pour la vue carte (v026). Payload léger : un point."""
+    slug: str
+    name: str
+    latitude: float
+    longitude: float
+    geo_source: str  # 'city' | 'country'
+    thumbnail_url: str | None = None  # portrait corpus aligné, repli wiki_thumbnail_url
+    image_count: int = 0
+    is_favorite: bool = False
+
+
 class EntityDetail(EntityListItem):
     aliases: list[str]
     first_seen: datetime | None

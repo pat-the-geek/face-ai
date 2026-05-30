@@ -49,6 +49,7 @@ export const api = {
       offset,
     }),
   entity: (slug) => jsonFetch(`/entities/${slug}`),
+  entitiesMap: () => jsonFetch("/entities/map"),
   entityImages: (slug, filters = {}) =>
     jsonFetch(`/entities/${slug}/images`, filters),
   search: (q) => jsonFetch("/entities/search", { q }),

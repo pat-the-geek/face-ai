@@ -42,6 +42,168 @@ PROP_PLACE_OF_DEATH = "P20"
 PROP_COUNTRY_CITIZENSHIP = "P27"
 PROP_OCCUPATION = "P106"
 PROP_EMPLOYER = "P108"
+PROP_COORDINATE = "P625"  # coordonnée géographique (sur l'item lieu, pas la personne)
+
+# Centroïdes (lat, lng) par label FR de pays — repli quand le lieu de naissance
+# précis (P625 du P19) est inconnu. Indexé sur les labels Wikidata FR stockés
+# dans `entities.nationalities` (P27). Couvre les pays courants du corpus presse ;
+# un pays absent ici n'est simplement pas géolocalisé via nationalité (la personne
+# peut quand même l'être via sa ville de naissance). Valeurs = centre géographique
+# approximatif, suffisant pour un point sur une carte du monde.
+COUNTRY_CENTROIDS: dict[str, tuple[float, float]] = {
+    "États-Unis": (39.8, -98.6),
+    "France": (46.6, 2.4),
+    "Royaume-Uni": (54.0, -2.0),
+    "Allemagne": (51.2, 10.4),
+    "Suisse": (46.8, 8.2),
+    "Italie": (42.8, 12.6),
+    "Espagne": (40.2, -3.7),
+    "Canada": (56.1, -106.3),
+    "Chine": (35.9, 104.2),
+    "Japon": (36.2, 138.3),
+    "Russie": (61.5, 105.3),
+    "Inde": (22.6, 78.9),
+    "Brésil": (-14.2, -51.9),
+    "Australie": (-25.3, 133.8),
+    "Belgique": (50.5, 4.5),
+    "Pays-Bas": (52.1, 5.3),
+    "Suède": (60.1, 18.6),
+    "Norvège": (60.5, 8.5),
+    "Danemark": (56.3, 9.5),
+    "Autriche": (47.5, 14.6),
+    "Irlande": (53.4, -8.2),
+    "Portugal": (39.4, -8.2),
+    "Grèce": (39.1, 21.8),
+    "Pologne": (51.9, 19.1),
+    "Mexique": (23.6, -102.6),
+    "Argentine": (-38.4, -63.6),
+    "Israël": (31.0, 34.9),
+    "Afrique du Sud": (-30.6, 22.9),
+    "Corée du Sud": (35.9, 127.8),
+    "Turquie": (39.0, 35.2),
+    "Égypte": (26.8, 30.8),
+    "Arabie saoudite": (23.9, 45.1),
+    "Émirats arabes unis": (23.4, 53.8),
+    "Nouvelle-Zélande": (-40.9, 174.9),
+    "Finlande": (61.9, 25.7),
+    "Ukraine": (48.4, 31.2),
+    "Hongrie": (47.2, 19.5),
+    "République tchèque": (49.8, 15.5),
+    "Roumanie": (45.9, 25.0),
+    "Singapour": (1.35, 103.8),
+    "Iran": (32.4, 53.7),
+    "Pakistan": (30.4, 69.3),
+    "Indonésie": (-0.8, 113.9),
+    "Thaïlande": (15.9, 100.99),
+    "Viêt Nam": (14.1, 108.3),
+    "Viêt Nam du Sud": (14.1, 108.3),
+    "Nigeria": (9.1, 8.7),
+    "Kenya": (-0.02, 37.9),
+    "Maroc": (31.8, -7.1),
+    "Chili": (-35.7, -71.5),
+    "Colombie": (4.6, -74.3),
+    "Pérou": (-9.2, -75.0),
+    "Venezuela": (6.4, -66.6),
+    "Cuba": (21.5, -77.8),
+    "Luxembourg": (49.8, 6.1),
+    "Croatie": (45.1, 15.2),
+    "Serbie": (44.0, 21.0),
+    "Slovaquie": (48.7, 19.7),
+    "Slovénie": (46.2, 15.0),
+    "Bulgarie": (42.7, 25.5),
+    "Liban": (33.9, 35.9),
+    "Taïwan": (23.7, 121.0),
+    "République de Chine (Taïwan)": (23.7, 121.0),
+    "Philippines": (12.9, 121.8),
+    "Malaisie": (4.2, 101.98),
+    "Écosse": (56.5, -4.2),
+    "Pays de Galles": (52.3, -3.8),
+    "Angleterre": (52.4, -1.5),
+    "Tchécoslovaquie": (49.8, 15.5),
+    "Union soviétique": (61.5, 105.3),
+    "Empire russe": (61.5, 105.3),
+    "Royaume d'Italie": (42.8, 12.6),
+    "Allemagne de l'Ouest": (51.2, 10.4),
+    "République fédérale d'Allemagne": (51.2, 10.4),
+    # ── Extension de couverture (réduit les entités non placées) ──
+    "Tchéquie": (49.8, 15.5),
+    "Birmanie": (21.9, 95.96),
+    "Myanmar": (21.9, 95.96),
+    "Corée du Nord": (40.3, 127.5),
+    "Bangladesh": (23.7, 90.4),
+    "Sri Lanka": (7.9, 80.8),
+    "Népal": (28.4, 84.1),
+    "Afghanistan": (33.9, 67.7),
+    "Irak": (33.2, 43.7),
+    "Syrie": (34.8, 38.997),
+    "Jordanie": (30.6, 36.2),
+    "Qatar": (25.4, 51.2),
+    "Koweït": (29.3, 47.5),
+    "Bahreïn": (26.1, 50.6),
+    "Oman": (21.5, 55.9),
+    "Yémen": (15.6, 48.0),
+    "Algérie": (28.0, 1.7),
+    "Tunisie": (33.9, 9.6),
+    "Libye": (26.3, 17.2),
+    "Soudan": (12.9, 30.2),
+    "Soudan du Sud": (7.0, 30.0),
+    "Éthiopie": (9.1, 40.5),
+    "Ghana": (7.9, -1.0),
+    "Côte d'Ivoire": (7.5, -5.5),
+    "Sénégal": (14.5, -14.5),
+    "Cameroun": (5.7, 12.7),
+    "Tanzanie": (-6.4, 34.9),
+    "Ouganda": (1.4, 32.3),
+    "Zimbabwe": (-19.0, 29.2),
+    "Zambie": (-13.1, 27.8),
+    "Angola": (-11.2, 17.9),
+    "Mozambique": (-18.7, 35.5),
+    "Rwanda": (-1.9, 29.9),
+    "Mali": (17.6, -4.0),
+    "Madagascar": (-18.8, 46.9),
+    "République démocratique du Congo": (-4.0, 21.8),
+    "Équateur": (-1.8, -78.2),
+    "Bolivie": (-16.3, -63.6),
+    "Paraguay": (-23.4, -58.4),
+    "Uruguay": (-32.5, -55.8),
+    "Guatemala": (15.8, -90.2),
+    "Costa Rica": (9.7, -83.8),
+    "Panama": (8.5, -80.8),
+    "République dominicaine": (18.7, -70.2),
+    "Jamaïque": (18.1, -77.3),
+    "Haïti": (19.1, -72.3),
+    "Honduras": (15.2, -86.2),
+    "Salvador": (13.8, -88.9),
+    "Nicaragua": (12.9, -85.2),
+    "Islande": (64.96, -19.0),
+    "Estonie": (58.6, 25.0),
+    "Lettonie": (56.9, 24.6),
+    "Lituanie": (55.2, 23.9),
+    "Biélorussie": (53.7, 27.95),
+    "Moldavie": (47.4, 28.4),
+    "Géorgie": (42.3, 43.4),
+    "Arménie": (40.1, 45.0),
+    "Azerbaïdjan": (40.1, 47.6),
+    "Kazakhstan": (48.0, 66.9),
+    "Ouzbékistan": (41.4, 64.6),
+    "Mongolie": (46.9, 103.8),
+    "Cambodge": (12.6, 104.99),
+    "Laos": (19.9, 102.5),
+    "Brunei": (4.5, 114.7),
+    "Chypre": (35.1, 33.4),
+    "Malte": (35.9, 14.4),
+    "Monaco": (43.7, 7.4),
+    "Liechtenstein": (47.2, 9.6),
+    "Andorre": (42.5, 1.6),
+    "Saint-Marin": (43.9, 12.5),
+    "Macédoine du Nord": (41.6, 21.7),
+    "Albanie": (41.2, 20.2),
+    "Bosnie-Herzégovine": (43.9, 17.7),
+    "Monténégro": (42.7, 19.4),
+    "Kosovo": (42.6, 20.9),
+    "Empire ottoman": (39.0, 35.2),
+    "Yougoslavie": (44.0, 21.0),
+}
 
 # QIDs valides pour `instance of` côté FACE.ai. Le périmètre est strictement
 # "personne réelle" (cf. spec §1.5 et CLAUDE.md — veille interne sur des
@@ -174,6 +336,58 @@ def _statement_times(statements: dict, prop: str) -> list[date]:
         if d:
             out.append(d)
     return out
+
+
+def _statement_coordinate(statements: dict, prop: str) -> tuple[float, float] | None:
+    """Extrait la 1re coordonnée (lat, lng) d'une propriété P625.
+
+    Le `value.content` d'un statement P625 est un dict
+    `{latitude, longitude, precision, globe}`. On ignore les coordonnées hors
+    Terre (globe ≠ Q2) — rare mais Wikidata référence aussi des lieux lunaires.
+    """
+    for s in statements.get(prop, []) or []:
+        content = (s.get("value") or {}).get("content")
+        if not isinstance(content, dict):
+            continue
+        globe = content.get("globe") or ""
+        if globe and not globe.endswith("Q2"):
+            continue
+        lat, lng = content.get("latitude"), content.get("longitude")
+        if isinstance(lat, (int, float)) and isinstance(lng, (int, float)):
+            return (float(lat), float(lng))
+    return None
+
+
+def _resolve_entity_geo(entity: Entity, statements: dict) -> None:
+    """Renseigne `entity.latitude/longitude/geo_source` (vue carte, v026).
+
+    Priorité : coordonnées précises de la ville de naissance (P19 → P625), sinon
+    repli sur le centroïde du pays de nationalité (P27, label déjà résolu dans
+    `entity.nationalities`). Aucun des deux → champs laissés NULL (entité non
+    affichée sur la carte). `statements` = statements de la *personne* déjà
+    chargés ; la résolution de la ville déclenche un appel réseau supplémentaire
+    (statements du lieu).
+    """
+    entity.latitude = None
+    entity.longitude = None
+    entity.geo_source = None
+
+    birth_place_qids = _statement_qids(statements, PROP_PLACE_OF_BIRTH)
+    if birth_place_qids:
+        coord = _statement_coordinate(
+            _get_statements(birth_place_qids[0]), PROP_COORDINATE
+        )
+        if coord:
+            entity.latitude, entity.longitude = coord
+            entity.geo_source = "city"
+            return
+
+    for label in (entity.nationalities or "").split("|"):
+        centroid = COUNTRY_CENTROIDS.get(label.strip())
+        if centroid:
+            entity.latitude, entity.longitude = centroid
+            entity.geo_source = "country"
+            return
 
 
 def _get_wikidata_label(qid: str, lang: str = "fr") -> str | None:
@@ -342,9 +556,85 @@ def enrich_entity(entity_id: int) -> str:
             )
             entity.employer = labels.get(employer_qids[0]) if employer_qids else None
 
+            # Position géographique pour la vue carte (v026). Après le bloc bio
+            # car `entity.nationalities` doit être renseigné pour le repli pays.
+            _resolve_entity_geo(entity, statements)
+
         entity.wikidata_status = "done"
         entity.wikidata_synced_at = datetime.utcnow()
         db.commit()
         return "done"
     finally:
         db.close()
+
+
+def backfill_coordinates(rate_limit: float = 1.0) -> dict:
+    """Renseigne latitude/longitude/geo_source pour les entités déjà enrichies.
+
+    Pour l'historique pré-v026 : itère les entités `wikidata_status='done'` sans
+    coordonnée, rejoue `_resolve_entity_geo` (re-fetch des statements via le QID
+    déjà connu — pas de re-recherche, pas de fusion, défensif vis-à-vis du
+    garde-fou auto-merge gelé). Rate-limité (politesse Wikidata).
+    """
+    db = SessionLocal()
+    try:
+        rows = (
+            db.query(Entity)
+            .filter(
+                Entity.wikidata_status == "done",
+                Entity.wikidata_qid.isnot(None),
+                Entity.latitude.is_(None),
+            )
+            .all()
+        )
+        total = len(rows)
+        by_city = by_country = 0
+        log.info("backfill-coordinates : %d entités à traiter", total)
+        for i, entity in enumerate(rows, 1):
+            statements = _get_statements(entity.wikidata_qid)
+            _resolve_entity_geo(entity, statements)
+            if entity.geo_source == "city":
+                by_city += 1
+            elif entity.geo_source == "country":
+                by_country += 1
+            db.commit()
+            if i % 25 == 0 or i == total:
+                log.info(
+                    "  %d/%d (ville=%d, pays=%d)", i, total, by_city, by_country
+                )
+            time.sleep(rate_limit)
+        result = {
+            "total": total,
+            "city": by_city,
+            "country": by_country,
+            "unresolved": total - by_city - by_country,
+        }
+        log.info("backfill-coordinates terminé : %s", result)
+        return result
+    finally:
+        db.close()
+
+
+if __name__ == "__main__":
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Outils Wikidata FACE.ai")
+    parser.add_argument(
+        "--backfill-coordinates",
+        action="store_true",
+        help="Renseigne lat/lng/geo_source des entités enrichies sans coordonnée (v026)",
+    )
+    parser.add_argument(
+        "--rate-limit",
+        type=float,
+        default=1.0,
+        help="Délai inter-requête en secondes (défaut 1.0)",
+    )
+    args = parser.parse_args()
+
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+
+    if args.backfill_coordinates:
+        backfill_coordinates(rate_limit=args.rate_limit)
+    else:
+        parser.print_help()

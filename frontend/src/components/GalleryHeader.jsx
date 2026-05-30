@@ -48,6 +48,8 @@ export default function GalleryHeader({
   galtonImages = null,
   galtonSelectionCount = 0,
   onClearGaltonSelection,
+  detailsOpen = false,
+  onToggleDetails,
 }) {
   const [galtonOpen, setGaltonOpen] = useState(false);
   if (!entity) return null;
@@ -124,8 +126,20 @@ export default function GalleryHeader({
         </div>
       </div>
 
-      {hasBio && (
-        <div className="mt-6 max-w-3xl space-y-1.5 text-sm">
+      <button
+        onClick={onToggleDetails}
+        className="mt-5 text-[11px] font-mono uppercase tracking-wider text-[var(--text-secondary)] hover:text-accent transition-colors"
+        title={
+          detailsOpen
+            ? "Replier les infos et l'activité pour agrandir la galerie"
+            : "Afficher la fiche bio et la heatmap d'activité"
+        }
+      >
+        {detailsOpen ? "▾" : "▸"} Infos & activité
+      </button>
+
+      {detailsOpen && hasBio && (
+        <div className="mt-4 max-w-3xl space-y-1.5 text-sm">
           <BioRow label="Naissance">{birthLine}</BioRow>
           <BioRow label="Décès">{deathLine}</BioRow>
           <BioRow label="Nationalité">

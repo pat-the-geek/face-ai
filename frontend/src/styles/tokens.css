@@ -124,3 +124,47 @@ body,
   font-style: normal;
   letter-spacing: -0.01em;
 }
+
+/* ─────────────────────────────────────────────────────────────
+   Vue carte (/carte) — marqueurs photo en zoom rapproché.
+   Les DivIcon Leaflet sont hors du flux React : styles globaux ici.
+   ───────────────────────────────────────────────────────────── */
+.map-pin-wrapper {
+  background: transparent;
+  border: 0;
+}
+.map-pin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  cursor: pointer;
+}
+.map-pin img,
+.map-pin__placeholder {
+  width: 44px;
+  height: 44px;
+  border-radius: 9999px;
+  object-fit: cover;
+  border: 2px solid var(--accent, #c8102e);
+  background: var(--bg-secondary);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+}
+.map-pin--fav img,
+.map-pin--fav .map-pin__placeholder {
+  border-color: #f0a020;
+}
+.map-pin span {
+  font-family: "Space Mono", monospace;
+  font-size: 10px;
+  line-height: 1.1;
+  max-width: 80px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: #1a1814;
+  background: rgba(255, 255, 255, 0.85);
+  padding: 1px 4px;
+  border-radius: 3px;
+}

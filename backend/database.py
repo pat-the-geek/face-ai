@@ -51,6 +51,11 @@ class Entity(Base):
     occupations = Column(Text)
     employer = Column(Text)
 
+    # Position géographique pour la vue carte (v026)
+    latitude = Column(Float)
+    longitude = Column(Float)
+    geo_source = Column(Text)  # 'city' (P625 lieu de naissance) | 'country' (centroïde nationalité)
+
     # Centroïde d'identité ArcFace (v014, spec §11.2)
     identity_centroid = Column(LargeBinary)  # 2048 octets (512 floats L2-norm)
     identity_count = Column(Integer, server_default="0")

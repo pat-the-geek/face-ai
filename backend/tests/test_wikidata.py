@@ -445,3 +445,119 @@ class TestEnrichEntityIntegration:
         # Aucune requête wbsearchentities ne doit avoir été faite
         actions = [a for _, a in call_log]
         assert "wbsearchentities" not in actions
+
+
+# ─────────────────────────────────────────────────────────────────
+# Coordonnées géographiques (v026) — vue carte
+# ─────────────────────────────────────────────────────────────────
+
+
+class TestStatementCoordinate:
+    def test_extracts_lat_lng(self):
+        from wikidata import _statement_coordinate
+
+        statements = {
+            "P625": [
+                {
+                    "value": {
+                        "content": {
+                            "latitude": 48.85,
+                            "longitude": 2.35,
+                            "globe": "http://www.wikidata.org/entity/Q2",
+                        }
+                    }
+                }
+            ]
+        }
+        assert _statement_coordinate(statements, "P625") == (48.85, 2.35)
+
+    def test_missing_property_returns_none(self):
+        from wikidata import _statement_coordinate
+
+        assert _statement_coordinate({}, "P625") is None
+
+    def test_skips_non_earth_globe(self):
+        from wikidata import _statement_coordinate
+
+        # Coordonnée lunaire (globe ≠ Q2) → ignorée
+        statements = {
+            "P625": [
+                {
+                    "value": {
+                        "content": {
+                            "latitude": 0.0,
+                            "longitude": 0.0,
+                            "globe": "http://www.wikidata.org/entity/Q405",
+                        }
+                    }
+                }
+            ]
+        }
+        assert _statement_coordinate(statements, "P625") is None
+
+
+class TestResolveEntityGeo:
+    def test_city_takes_priority(self, monkeypatch, db):
+        from database import Entity
+        from wikidata import _resolve_entity_geo
+
+        e = Entity(name="Test, Ville", slug="test-ville", nationalities="France")
+        db.add(e)
+        db.flush()
+
+        # statements de la personne : P19 = QID du lieu de naissance
+        person_statements = {"P19": [{"value": {"content": "Q1490"}}]}
+        # statements du lieu (1 appel réseau via _get_statements) → P625
+        monkeypatch.setattr(
+            "wikidata._get_statements",
+            lambda qid: {
+                "P625": [
+                    {"value": {"content": {"latitude": 35.68, "longitude": 139.69}}}
+                ]
+            },
+        )
+        _resolve_entity_geo(e, person_statements)
+        assert e.geo_source == "city"
+        assert e.latitude == pytest.approx(35.68)
+        assert e.longitude == pytest.approx(139.69)
+
+    def test_falls_back_to_country_centroid(self, monkeypatch, db):
+        from database import Entity
+        from wikidata import COUNTRY_CENTROIDS, _resolve_entity_geo
+
+        e = Entity(name="Test, Pays", slug="test-pays", nationalities="France|Suisse")
+        db.add(e)
+        db.flush()
+
+        # Pas de lieu de naissance → repli sur le 1er pays connu
+        _resolve_entity_geo(e, {})
+        assert e.geo_source == "country"
+        assert (e.latitude, e.longitude) == COUNTRY_CENTROIDS["France"]
+
+    def test_city_without_coords_falls_back_to_country(self, monkeypatch, db):
+        from database import Entity
+        from wikidata import COUNTRY_CENTROIDS, _resolve_entity_geo
+
+        e = Entity(name="Test, X", slug="test-x", nationalities="Suisse")
+        db.add(e)
+        db.flush()
+
+        person_statements = {"P19": [{"value": {"content": "Q9999"}}]}
+        # Le lieu n'a pas de P625 → repli pays
+        monkeypatch.setattr("wikidata._get_statements", lambda qid: {})
+        _resolve_entity_geo(e, person_statements)
+        assert e.geo_source == "country"
+        assert (e.latitude, e.longitude) == COUNTRY_CENTROIDS["Suisse"]
+
+    def test_no_geo_leaves_null(self, db):
+        from database import Entity
+        from wikidata import _resolve_entity_geo
+
+        e = Entity(name="Test, None", slug="test-none", nationalities=None)
+        db.add(e)
+        db.flush()
+
+        _resolve_entity_geo(e, {})
+        assert e.latitude is None
+        assert e.longitude is None
+        assert e.geo_source is None

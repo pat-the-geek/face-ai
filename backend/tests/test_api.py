@@ -169,6 +169,104 @@ def test_entity_404(client):
     assert r.status_code == 404
 
 
+# ── /entities/map (vue carte, v026) ─────────────────────────────────
+
+
+class TestEntitiesMap:
+    def test_only_returns_geolocated_entities(self, client, db):
+        from database import Entity
+
+        # Une entité géolocalisée + une sans coordonnées
+        db.add_all(
+            [
+                Entity(
+                    name="Geo, Person",
+                    slug="geo-person",
+                    latitude=48.85,
+                    longitude=2.35,
+                    geo_source="city",
+                    image_count=3,
+                ),
+                Entity(name="NoGeo, Person", slug="nogeo-person"),
+            ]
+        )
+        db.commit()
+
+        body = client.get("/entities/map").json()
+        slugs = {e["slug"] for e in body}
+        assert "geo-person" in slugs
+        assert "nogeo-person" not in slugs
+        geo = next(e for e in body if e["slug"] == "geo-person")
+        assert geo["latitude"] == 48.85
+        assert geo["geo_source"] == "city"
+        assert geo["image_count"] == 3
+
+    def test_excludes_not_person(self, client, db):
+        from database import Entity
+
+        db.add(
+            Entity(
+                name="OpenAI",
+                slug="openai",
+                latitude=37.77,
+                longitude=-122.41,
+                geo_source="city",
+                wikidata_status="not_person",
+            )
+        )
+        db.commit()
+
+        body = client.get("/entities/map").json()
+        assert all(e["slug"] != "openai" for e in body)
+
+    def test_thumbnail_prefers_aligned_falls_back_wiki(self, client, db):
+        from database import Article, Entity, Image
+
+        with_img = Entity(
+            name="With, Aligned",
+            slug="with-aligned",
+            latitude=1.0,
+            longitude=1.0,
+            geo_source="country",
+        )
+        wiki_only = Entity(
+            name="Wiki, Only",
+            slug="wiki-only",
+            latitude=2.0,
+            longitude=2.0,
+            geo_source="country",
+            wiki_thumbnail_url="https://example.com/wiki.jpg",
+        )
+        db.add_all([with_img, wiki_only])
+        db.flush()
+        article = Article(url="https://wudd.ai/a", title="t", source_domain="wudd.ai")
+        db.add(article)
+        db.flush()
+        img = Image(
+            article_id=article.id,
+            entity_id=with_img.id,
+            source_url="https://example.com/x.jpg",
+            local_path="/tmp/x.jpg",
+            aligned_path="/tmp/x_aligned.jpg",
+            scrape_status="downloaded",
+            analysis_status="done",
+            association_status="confirmed",
+        )
+        db.add(img)
+        db.commit()
+        image_id = img.id
+
+        by_slug = {e["slug"]: e for e in client.get("/entities/map").json()}
+        assert by_slug["with-aligned"]["thumbnail_url"] == f"/static/aligned/{image_id}.jpg"
+        assert by_slug["wiki-only"]["thumbnail_url"] == "https://example.com/wiki.jpg"
+
+    def test_map_route_not_shadowed_by_slug(self, client, db):
+        # /entities/map ne doit pas être capturé comme /entities/{slug}
+        r = client.get("/entities/map")
+        assert r.status_code == 200
+        assert isinstance(r.json(), list)
+
+
 # ── /entities/search (FTS5) ─────────────────────────────────────────
 
 

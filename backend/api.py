@@ -27,6 +27,7 @@ from schemas import (
     EntityHit,
     EntityImagesResponse,
     EntityListItem,
+    EntityMapItem,
     FaceOut,
     FlaggedImage,
     FlaggedListResponse,
@@ -1058,6 +1059,68 @@ def list_entities(
         entities=[EntityListItem.model_validate(r) for r in rows],
         total=total,
     )
+
+
+@app.get("/entities/map", response_model=list[EntityMapItem])
+def list_entities_map(db: Session = Depends(get_db)):
+    """Entités géolocalisées pour la vue carte (v026).
+
+    Renvoie la liste complète des entités ayant des coordonnées (latitude +
+    longitude non NULL) — exception assumée à la pagination obligatoire car le
+    sous-ensemble géolocalisé est borné et la carte a besoin de tous les points
+    d'un coup. Position résolue par `wikidata._resolve_entity_geo` (ville de
+    naissance, sinon centroïde pays). Vignette : portrait corpus aligné si
+    disponible, repli sur la miniature Wikipédia.
+
+    Déclaré AVANT `/entities/{slug}` pour ne pas être capturé comme un slug.
+    """
+    entities = (
+        db.execute(
+            _exclude_not_person(select(Entity)).where(
+                Entity.latitude.is_not(None),
+                Entity.longitude.is_not(None),
+            )
+        )
+        .scalars()
+        .all()
+    )
+
+    # Une vignette de portrait aligné représentative par entité (la plus ancienne
+    # non-doublon non-flaggée), en un seul GROUP BY plutôt qu'une requête/entité.
+    ids = [e.id for e in entities]
+    rep: dict[int, int] = {}
+    if ids:
+        rows = db.execute(
+            select(Image.entity_id, func.min(Image.id))
+            .where(
+                Image.entity_id.in_(ids),
+                Image.aligned_path.is_not(None),
+                Image.is_duplicate.is_(False),
+                Image.association_status != "flagged",
+            )
+            .group_by(Image.entity_id)
+        ).all()
+        rep = {entity_id: image_id for entity_id, image_id in rows}
+
+    out: list[EntityMapItem] = []
+    for e in entities:
+        image_id = rep.get(e.id)
+        thumbnail_url = (
+            f"/static/aligned/{image_id}.jpg" if image_id else e.wiki_thumbnail_url
+        )
+        out.append(
+            EntityMapItem(
+                slug=e.slug,
+                name=e.name,
+                latitude=e.latitude,
+                longitude=e.longitude,
+                geo_source=e.geo_source or "country",
+                thumbnail_url=thumbnail_url,
+                image_count=e.image_count or 0,
+                is_favorite=bool(e.is_favorite),
+            )
+        )
+    return out
 
 
 @app.put("/entities/{slug}/favorite")

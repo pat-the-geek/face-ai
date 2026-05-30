@@ -10,6 +10,7 @@ import EntityList from "./components/EntityList";
 import FontScaler from "./components/FontScaler";
 import GalleryPanel from "./components/GalleryPanel";
 import GlobalSearch from "./components/GlobalSearch";
+import MapView from "./components/MapView";
 import SplitScreen from "./components/SplitScreen";
 import { api } from "./api/client";
 
@@ -19,8 +20,10 @@ export default function App() {
   const location = useLocation();
   const onAuditRoute = location.pathname === "/audit";
   const onAdminRoute = location.pathname === "/admin";
+  const onMapRoute = location.pathname === "/carte";
   const onCompareRoute = location.pathname.startsWith("/compare/");
-  const fullWidthRoute = onAuditRoute || onAdminRoute || onCompareRoute;
+  const fullWidthRoute =
+    onAuditRoute || onAdminRoute || onMapRoute || onCompareRoute;
 
   const { data: flagged } = useQuery({
     queryKey: ["flagged"],
@@ -50,6 +53,16 @@ export default function App() {
           <FontScaler />
           <ColorModeToggle />
           <Link
+            to="/"
+            className={`transition-colors ${
+              !fullWidthRoute
+                ? "text-accent"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            Liste
+          </Link>
+          <Link
             to="/audit"
             className={`transition-colors ${
               onAuditRoute
@@ -63,6 +76,16 @@ export default function App() {
                 {flaggedCount}
               </span>
             )}
+          </Link>
+          <Link
+            to="/carte"
+            className={`transition-colors ${
+              onMapRoute
+                ? "text-accent"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            Carte
           </Link>
           <Link
             to="/admin"
@@ -104,6 +127,7 @@ export default function App() {
             <Route path="/" element={<GalleryPanel />} />
             <Route path="/audit" element={<AuditPanel />} />
             <Route path="/admin" element={<AdminPanel />} />
+            <Route path="/carte" element={<MapView />} />
             <Route
               path="/compare/:slugA/:slugB"
               element={<SplitScreen />}
