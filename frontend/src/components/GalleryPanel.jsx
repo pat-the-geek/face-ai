@@ -4,7 +4,6 @@ import { useEntityImages } from "../hooks/useEntities";
 import { useAmbientColor } from "../hooks/useAmbientColor";
 import { useColorMode } from "../hooks/useColorMode";
 import { useFlipbook } from "../hooks/useFlipbook";
-import EntityTimeline from "./EntityTimeline";
 import GalleryHeader from "./GalleryHeader";
 import FaceCard from "./FaceCard";
 import FlipbookOverlay from "./FlipbookOverlay";
@@ -145,15 +144,10 @@ export default function GalleryPanel({ slug: propSlug }) {
         onClearGaltonSelection={clearGaltonSelection}
         detailsOpen={detailsOpen}
         onToggleDetails={() => setDetailsOpen((v) => !v)}
+        selectedDate={dateFilter}
+        onSelectDate={setDateFilter}
       />
       <div className="flex-1 overflow-y-auto p-8">
-        {detailsOpen && (
-          <EntityTimeline
-            slug={slug}
-            selectedDate={dateFilter}
-            onSelectDate={setDateFilter}
-          />
-        )}
         {dateFilter && (
           <div className="mb-4 px-3 py-2 border border-accent flex items-center justify-between text-xs font-mono">
             <span>

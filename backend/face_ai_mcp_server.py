@@ -152,8 +152,11 @@ def get_entity_profile(slug: str) -> dict:
             or 0
         )
 
-        nationalities = [s for s in (entity.nationalities or "").split("|") if s]
-        occupations = [s for s in (entity.occupations or "").split("|") if s]
+        def _pipe(v):
+            return [s for s in (v or "").split("|") if s]
+
+        nationalities = _pipe(entity.nationalities)
+        occupations = _pipe(entity.occupations)
 
         # Deux champs **distincts** sémantiquement (cf. rapport de test
         # MCP 2026-05-12 : un fallback masquait l'écart) :
@@ -208,6 +211,18 @@ def get_entity_profile(slug: str) -> dict:
             "nationalities": nationalities,
             "occupations": occupations,
             "employer": entity.employer,
+            # v027 — enrichissement étendu (bloc A factuel)
+            "gender": entity.gender,
+            "political_party": _pipe(entity.political_party),
+            "positions_held": _pipe(entity.positions_held),
+            "awards": _pipe(entity.awards),
+            "notable_works": _pipe(entity.notable_works),
+            # v027 — attributs sensibles RGPD art. 9 (bloc B, décision
+            # propriétaire 2026-05-30 ; exposés normalement par choix explicite).
+            "ethnic_group": _pipe(entity.ethnic_group),
+            "religion": _pipe(entity.religion),
+            "sexual_orientation": entity.sexual_orientation,
+            "medical_condition": _pipe(entity.medical_condition),
         }
     finally:
         db.close()
@@ -775,6 +790,145 @@ def find_duplicate_candidates(limit: int = 30) -> dict:
     return result
 
 
+@mcp.tool()
+def get_cooccurrence_network(slug: str, limit: int = 10) -> dict:
+    """Réseau de cooccurrence éditoriale d'une entité (graphe matérialisé, A5).
+
+    Retourne les `limit` entités qui apparaissent le plus souvent dans les
+    mêmes articles — proxy des relations (rivalité, association, agenda commun).
+    Lit la table `entity_cooccurrence` (recalculée par le worker) ; rapide même
+    à grande échelle, contrairement au calcul par paire de `compare_entities`.
+    """
+    from cooccurrence import top_cooccurrences
+
+    db = SessionLocal()
+    try:
+        entity = db.scalar(select(Entity).where(Entity.slug == slug))
+        if entity is None or entity.wikidata_status == "not_person":
+            return {"error": f"entité '{slug}' introuvable"}
+        eid = entity.id
+        name = entity.name
+    finally:
+        db.close()
+    return {"slug": slug, "name": name, "partners": top_cooccurrences(eid, limit=limit)}
+
+
+@mcp.tool()
+def get_behavioral_profile(slug: str) -> dict:
+    """Profil comportemental dérivé **du seul corpus** (B4).
+
+    Synthétise : centralité dans le réseau de cooccurrence (`network_degree`),
+    top partenaires, volatilité de visibilité (écart-type/moyenne des images
+    mensuelles — élevé = présence en pics événementiels), mois de pic, ratio
+    d'attributions suspectes (flagged), et sources éditoriales dominantes.
+
+    Aucune source externe, aucun scoring de personnalité : ce sont des signaux
+    agrégés de nos propres données, à présenter comme tels.
+    """
+    from cooccurrence import behavioral_profile
+
+    db = SessionLocal()
+    try:
+        eid = db.scalar(select(Entity.id).where(Entity.slug == slug))
+    finally:
+        db.close()
+    if eid is None:
+        return {"error": f"entité '{slug}' introuvable"}
+    profile = behavioral_profile(eid)
+    return profile or {"error": "profil indisponible"}
+
+
+@mcp.tool()
+def get_corpus_demographics() -> dict:
+    """Agrégats démographiques du corpus (exploite l'enrichissement v027).
+
+    Distingue **genre factuel** (Wikidata P21) et **genre estimé** (B1,
+    InsightFace sur les visages) — ne pas amalgamer. Inclut nationalités,
+    occupations, partis, religions, origines ethniques dominantes, distribution
+    d'âge (vivants), nombre de décédés et répartition des agences photo.
+    Borné (top-N par axe). Exclut les tombstones not_person.
+    """
+    from photo_credit import agency_distribution
+
+    db = SessionLocal()
+    try:
+        not_person = (Entity.wikidata_status.is_(None)) | (
+            Entity.wikidata_status != "not_person"
+        )
+
+        def _pipe_top(column, top=15):
+            rows = db.execute(
+                select(column).where(not_person, column.is_not(None))
+            ).all()
+            counter: dict[str, int] = {}
+            for (val,) in rows:
+                for label in (val or "").split("|"):
+                    label = label.strip()
+                    if label:
+                        counter[label] = counter.get(label, 0) + 1
+            return dict(
+                sorted(counter.items(), key=lambda kv: kv[1], reverse=True)[:top]
+            )
+
+        gender_factual = {
+            r[0]: r[1]
+            for r in db.execute(
+                select(Entity.gender, func.count())
+                .where(not_person, Entity.gender.is_not(None))
+                .group_by(Entity.gender)
+            ).all()
+        }
+        gender_estimated = {
+            r[0]: r[1]
+            for r in db.execute(
+                select(FaceAnalysis.est_gender, func.count())
+                .where(FaceAnalysis.est_gender.is_not(None))
+                .group_by(FaceAnalysis.est_gender)
+            ).all()
+        }
+        today = date.today()
+        age_buckets: dict[str, int] = {}
+        born = db.execute(
+            select(Entity.birth_date).where(
+                not_person,
+                Entity.birth_date.is_not(None),
+                Entity.death_date.is_(None),
+            )
+        ).all()
+        for (bd,) in born:
+            age = today.year - bd.year - (
+                (today.month, today.day) < (bd.month, bd.day)
+            )
+            if 0 <= age <= 130:
+                b = f"{(age // 10) * 10}-{(age // 10) * 10 + 9}"
+                age_buckets[b] = age_buckets.get(b, 0) + 1
+        age_distribution = dict(
+            sorted(age_buckets.items(), key=lambda kv: int(kv[0].split("-")[0]))
+        )
+        deceased = (
+            db.scalar(
+                select(func.count())
+                .select_from(Entity)
+                .where(not_person, Entity.death_date.is_not(None))
+            )
+            or 0
+        )
+        return {
+            "gender_factual": gender_factual,
+            "gender_estimated": gender_estimated,
+            "nationalities": _pipe_top(Entity.nationalities),
+            "occupations": _pipe_top(Entity.occupations),
+            "political_party": _pipe_top(Entity.political_party),
+            "religion": _pipe_top(Entity.religion),
+            "ethnic_group": _pipe_top(Entity.ethnic_group),
+            "age_distribution": age_distribution,
+            "deceased_count": deceased,
+            "photo_agencies": agency_distribution(),
+        }
+    finally:
+        db.close()
+
+
 # ──────────────────────────────────────────────────────────────────────
 # Ressources MCP (spec §12.4) — exposent l'état du corpus comme des
 # "fichiers" lisibles par l'agent. Une ressource = un GET idempotent
@@ -897,10 +1051,29 @@ def resource_entity_detail(slug: str) -> str:
             lines.append(line)
         if entity.nationalities:
             lines.append(f"- **Nationalité** : {entity.nationalities.replace('|', ', ')}")
+        if entity.gender:
+            lines.append(f"- **Genre** : {entity.gender}")
         if entity.occupations:
             lines.append(f"- **Occupations** : {entity.occupations.replace('|', ', ')}")
         if entity.employer:
             lines.append(f"- **Employeur** : {entity.employer}")
+        if entity.political_party:
+            lines.append(f"- **Parti** : {entity.political_party.replace('|', ', ')}")
+        if entity.positions_held:
+            lines.append(f"- **Fonctions** : {entity.positions_held.replace('|', ', ')}")
+        if entity.awards:
+            lines.append(f"- **Distinctions** : {entity.awards.replace('|', ', ')}")
+        if entity.notable_works:
+            lines.append(f"- **Œuvres notables** : {entity.notable_works.replace('|', ', ')}")
+        # Attributs sensibles (art. 9) — exposés par décision propriétaire 2026-05-30.
+        if entity.religion:
+            lines.append(f"- **Religion** : {entity.religion.replace('|', ', ')}")
+        if entity.ethnic_group:
+            lines.append(f"- **Origine ethnique** : {entity.ethnic_group.replace('|', ', ')}")
+        if entity.sexual_orientation:
+            lines.append(f"- **Orientation** : {entity.sexual_orientation}")
+        if entity.medical_condition:
+            lines.append(f"- **État de santé** : {entity.medical_condition.replace('|', ', ')}")
         lines.append(
             f"- **Corpus FACE.ai** : {entity.image_count or 0} images, "
             f"{entity.article_count or 0} articles"

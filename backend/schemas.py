@@ -29,6 +29,14 @@ class FaceOut(BaseModel):
     # "composition multi-personnes". Nullable pour les images antérieures
     # à v025 (cf. `face_processor.py --backfill-face-count`).
     face_count: int | None = None
+    # v028 : qualité du portrait + attributs estimés depuis le visage.
+    # est_age/est_gender sont des **estimations** (B1), expression dérive du
+    # mesh (B2). Tous nullables (passes asynchrones / backfill).
+    quality_score: float | None = None
+    est_age: float | None = None
+    est_gender: str | None = None
+    expression: str | None = None
+    smile_score: float | None = None
 
 
 class ArticleRefOut(BaseModel):
@@ -101,6 +109,8 @@ class ImageOut(BaseModel):
     is_duplicate: bool
     association_status: str
     identity_match_score: float | None = None
+    # v028 (A4) : agence/crédit photo résolu (Getty, Reuters, AFP…). NULL = non résolu.
+    photo_agency: str | None = None
     article: ArticleRefOut | None
     face: FaceOut | None
 
@@ -132,6 +142,10 @@ class EntityMapItem(BaseModel):
     thumbnail_url: str | None = None  # portrait corpus aligné, repli wiki_thumbnail_url
     image_count: int = 0
     is_favorite: bool = False
+    # Description courte pour le tooltip de survol (résumé Wikipédia tronqué,
+    # repli sur occupations + nationalité). Tronquée côté serveur pour borner
+    # le payload de l'endpoint /entities/map (liste complète des géolocalisés).
+    description: str | None = None
 
 
 class EntityDetail(EntityListItem):
@@ -146,11 +160,25 @@ class EntityDetail(EntityListItem):
     birth_date: date | None = None
     death_date: date | None = None
     age_at_death: int | None = None
+    # v027/A2 : âge courant calculé depuis birth_date (None si décédé ou inconnu).
+    current_age: int | None = None
     birth_place: str | None = None
     death_place: str | None = None
     nationalities: list[str] = []
     occupations: list[str] = []
     employer: str | None = None
+    # v027 (bloc A — factuel Wikidata)
+    gender: str | None = None
+    political_party: list[str] = []
+    positions_held: list[str] = []
+    awards: list[str] = []
+    notable_works: list[str] = []
+    # v027 (bloc B — données sensibles RGPD art. 9, décision propriétaire
+    # 2026-05-30). Exposées normalement par choix explicite ; cf. CLAUDE.md §1.5.
+    ethnic_group: list[str] = []
+    religion: list[str] = []
+    sexual_orientation: str | None = None
+    medical_condition: list[str] = []
     # is_favorite hérité de EntityListItem
 
 

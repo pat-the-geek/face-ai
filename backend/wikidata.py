@@ -44,6 +44,20 @@ PROP_OCCUPATION = "P106"
 PROP_EMPLOYER = "P108"
 PROP_COORDINATE = "P625"  # coordonnée géographique (sur l'item lieu, pas la personne)
 
+# Enrichissement factuel étendu (v027, bloc A — intérêt légitime art. 6.1.f)
+PROP_GENDER = "P21"
+PROP_POLITICAL_PARTY = "P102"
+PROP_POSITION_HELD = "P39"
+PROP_AWARD = "P166"
+PROP_NOTABLE_WORK = "P800"
+
+# Attributs sensibles RGPD art. 9 (v027, bloc B — décision propriétaire
+# 2026-05-30, cf. database.py / migration v027). Issus de Wikidata public.
+PROP_ETHNIC_GROUP = "P172"
+PROP_RELIGION = "P140"
+PROP_SEXUAL_ORIENTATION = "P91"
+PROP_MEDICAL_CONDITION = "P1050"
+
 # Centroïdes (lat, lng) par label FR de pays — repli quand le lieu de naissance
 # précis (P625 du P19) est inconnu. Indexé sur les labels Wikidata FR stockés
 # dans `entities.nationalities` (P27). Couvre les pays courants du corpus presse ;
@@ -430,6 +444,60 @@ def _resolve_labels(qids: list[str], lang: str = "fr") -> dict[str, str]:
     return out
 
 
+def _pipe_join(qids: list[str], labels: dict[str, str]) -> str | None:
+    """Joint les labels résolus d'une liste de QIDs en chaîne pipe-separated.
+
+    Préserve l'ordre Wikidata, déduplique, ignore les QIDs non résolus.
+    Retourne None si rien (cohérent avec le stockage NULL en DB).
+    """
+    seen: list[str] = []
+    for q in qids:
+        label = labels.get(q)
+        if label and label not in seen:
+            seen.append(label)
+    return "|".join(seen) or None
+
+
+# Propriétés à valeurs multiples → colonnes pipe-separated. (entity_attr, prop)
+_MULTI_VALUE_PROPS = (
+    ("political_party", PROP_POLITICAL_PARTY),
+    ("positions_held", PROP_POSITION_HELD),
+    ("awards", PROP_AWARD),
+    ("notable_works", PROP_NOTABLE_WORK),
+    ("ethnic_group", PROP_ETHNIC_GROUP),
+    ("religion", PROP_RELIGION),
+    ("medical_condition", PROP_MEDICAL_CONDITION),
+)
+# Propriétés à valeur unique → premier label résolu. (entity_attr, prop)
+_SINGLE_VALUE_PROPS = (
+    ("gender", PROP_GENDER),
+    ("sexual_orientation", PROP_SEXUAL_ORIENTATION),
+)
+
+
+def _extended_qids(statements: dict) -> dict[str, list[str]]:
+    """QIDs cités par chaque propriété étendue (v027), indexés par attribut."""
+    out: dict[str, list[str]] = {}
+    for attr, prop in (*_MULTI_VALUE_PROPS, *_SINGLE_VALUE_PROPS):
+        out[attr] = _statement_qids(statements, prop)
+    return out
+
+
+def _apply_extended_enrichment(
+    entity: Entity, ext_qids: dict[str, list[str]], labels: dict[str, str]
+) -> None:
+    """Écrit les colonnes v027 (blocs A + B) sur l'entité depuis les labels résolus.
+
+    Réutilisable par `enrich_entity` (chemin nominal) et `backfill_enrichment`
+    (rattrapage défensif sans re-recherche ni fusion).
+    """
+    for attr, _prop in _MULTI_VALUE_PROPS:
+        setattr(entity, attr, _pipe_join(ext_qids.get(attr, []), labels))
+    for attr, _prop in _SINGLE_VALUE_PROPS:
+        qids = ext_qids.get(attr, [])
+        setattr(entity, attr, labels.get(qids[0]) if qids else None)
+
+
 def enrich_entity(entity_id: int) -> str:
     """Enrichit une entité. Retourne le statut écrit ('done', 'not_found', 'failed').
 
@@ -532,6 +600,9 @@ def enrich_entity(entity_id: int) -> str:
             nationality_qids = _statement_qids(statements, PROP_COUNTRY_CITIZENSHIP)
             occupation_qids = _statement_qids(statements, PROP_OCCUPATION)
             employer_qids = _statement_qids(statements, PROP_EMPLOYER)
+            # v027 : propriétés étendues (blocs A + B). QIDs résolus dans le
+            # même batch de labels que la bio historique (1 appel réseau).
+            ext_qids = _extended_qids(statements)
 
             all_qids = list(
                 dict.fromkeys(  # déduplique en préservant l'ordre
@@ -540,6 +611,7 @@ def enrich_entity(entity_id: int) -> str:
                     + nationality_qids
                     + occupation_qids
                     + employer_qids
+                    + [q for qids in ext_qids.values() for q in qids]
                 )
             )
             labels = _resolve_labels(all_qids, lang="fr")
@@ -555,6 +627,10 @@ def enrich_entity(entity_id: int) -> str:
                 or None
             )
             entity.employer = labels.get(employer_qids[0]) if employer_qids else None
+
+            # v027 : champs étendus (genre, parti, fonctions, prix, œuvres +
+            # attributs sensibles art. 9). Écrits depuis le même batch labels.
+            _apply_extended_enrichment(entity, ext_qids, labels)
 
             # Position géographique pour la vue carte (v026). Après le bloc bio
             # car `entity.nationalities` doit être renseigné pour le repli pays.
@@ -615,6 +691,54 @@ def backfill_coordinates(rate_limit: float = 1.0) -> dict:
         db.close()
 
 
+def backfill_enrichment(rate_limit: float = 1.0, limit: int | None = None) -> dict:
+    """Renseigne les colonnes v027 (blocs A + B) sur les entités déjà enrichies.
+
+    Pour l'historique pré-v027 : itère les entités `wikidata_status='done'` avec
+    un QID connu et dont les nouveaux champs sont encore vides (on teste `gender`
+    comme sentinelle), re-fetch les statements via le QID **déjà connu** puis
+    rejoue uniquement la résolution + l'écriture des nouvelles colonnes.
+
+    Défensif comme `backfill_coordinates` : aucune re-recherche de QID, aucune
+    fusion — le garde-fou auto-merge gelé (incident 2026-05-11) n'est pas touché.
+    Rate-limité (politesse Wikidata).
+    """
+    db = SessionLocal()
+    try:
+        q = db.query(Entity).filter(
+            Entity.wikidata_status == "done",
+            Entity.wikidata_qid.isnot(None),
+            Entity.gender.is_(None),
+        )
+        if limit:
+            q = q.limit(limit)
+        rows = q.all()
+        total = len(rows)
+        filled = 0
+        log.info("backfill-enrichment : %d entités à traiter", total)
+        for i, entity in enumerate(rows, 1):
+            statements = _get_statements(entity.wikidata_qid)
+            if statements:
+                ext_qids = _extended_qids(statements)
+                flat = [q for qids in ext_qids.values() for q in qids]
+                labels = _resolve_labels(list(dict.fromkeys(flat)), lang="fr")
+                _apply_extended_enrichment(entity, ext_qids, labels)
+                if any(
+                    getattr(entity, attr)
+                    for attr, _ in (*_MULTI_VALUE_PROPS, *_SINGLE_VALUE_PROPS)
+                ):
+                    filled += 1
+            db.commit()
+            if i % 25 == 0 or i == total:
+                log.info("  %d/%d (renseignées=%d)", i, total, filled)
+            time.sleep(rate_limit)
+        result = {"total": total, "filled": filled}
+        log.info("backfill-enrichment terminé : %s", result)
+        return result
+    finally:
+        db.close()
+
+
 if __name__ == "__main__":
     import argparse
 
@@ -623,6 +747,18 @@ if __name__ == "__main__":
         "--backfill-coordinates",
         action="store_true",
         help="Renseigne lat/lng/geo_source des entités enrichies sans coordonnée (v026)",
+    )
+    parser.add_argument(
+        "--backfill-enrichment",
+        action="store_true",
+        help="Renseigne les champs v027 (genre, parti, prix, attributs sensibles…) "
+        "des entités déjà enrichies, sans re-recherche ni fusion",
+    )
+    parser.add_argument(
+        "--limit",
+        type=int,
+        default=None,
+        help="Limite le nombre d'entités traitées (défaut : toutes)",
     )
     parser.add_argument(
         "--rate-limit",
@@ -636,5 +772,7 @@ if __name__ == "__main__":
 
     if args.backfill_coordinates:
         backfill_coordinates(rate_limit=args.rate_limit)
+    elif args.backfill_enrichment:
+        backfill_enrichment(rate_limit=args.rate_limit, limit=args.limit)
     else:
         parser.print_help()

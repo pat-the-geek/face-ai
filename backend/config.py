@@ -54,3 +54,9 @@ DDG_RATE_LIMIT_HOURS = int(os.getenv("DDG_RATE_LIMIT_HOURS", "24"))
 CENTROID_MIN_IMAGES = int(os.getenv("CENTROID_MIN_IMAGES", "5"))
 CENTROID_AUTO_DISTANCE = float(os.getenv("CENTROID_AUTO_DISTANCE", "0.20"))
 CENTROID_SUGGEST_DISTANCE = float(os.getenv("CENTROID_SUGGEST_DISTANCE", "0.45"))
+
+# Graphe de cooccurrence matérialisé (v029, A5). On ne stocke que les paires
+# d'entités partageant au moins ce nombre d'articles — borne la table
+# (sinon ~tout couple co-cité une fois, bruit + volume). 2 = au moins deux
+# co-occurrences éditoriales pour considérer un lien.
+COOCCURRENCE_MIN_SHARED = int(os.getenv("COOCCURRENCE_MIN_SHARED", "2"))

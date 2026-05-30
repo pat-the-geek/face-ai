@@ -54,6 +54,7 @@ def _clean_tables():
         ArticleEntity,
         Entity,
         EntityAlias,
+        EntityCooccurrence,
         FaceAnalysis,
         Image,
         SessionLocal,
@@ -66,6 +67,7 @@ def _clean_tables():
         s.query(Image).delete()
         s.query(EntityAlias).delete()
         s.query(ArticleEntity).delete()
+        s.query(EntityCooccurrence).delete()
         s.query(Entity).delete()
         s.query(Article).delete()
         s.query(WorkerEvent).delete()

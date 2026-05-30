@@ -232,6 +232,92 @@ def transform_landmarks_to_aligned(mesh_xy: np.ndarray, M: np.ndarray) -> np.nda
     return (transformed / CROP_SIZE).astype(np.float32)
 
 
+# ── Attributs dérivés du mesh / de l'image (v028) ──────────────────────
+# Indices MediaPipe FaceMesh utilisés pour l'expression. Le mesh est stocké
+# normalisé 0..1 sur l'image alignée ; toutes les distances ci-dessous sont
+# rapportées à l'écart inter-oculaire pour être invariantes à l'échelle.
+_MESH_MOUTH_LEFT = 61
+_MESH_MOUTH_RIGHT = 291
+_MESH_LIP_TOP = 13
+_MESH_LIP_BOTTOM = 14
+_MESH_EYE_L = (33, 133)
+_MESH_EYE_R = (362, 263)
+SMILE_THRESHOLD = 0.5  # smile_score au-dessus duquel expression = 'smiling'
+
+
+def _mesh_point(mesh: np.ndarray, idx: int) -> np.ndarray:
+    return mesh[idx]
+
+
+def _mesh_center(mesh: np.ndarray, indices: tuple[int, ...]) -> np.ndarray:
+    return mesh[list(indices)].mean(axis=0)
+
+
+def compute_expression(mesh_norm: np.ndarray) -> tuple[str, float] | tuple[None, None]:
+    """Descripteur d'expression grossier depuis le mesh 478 points normalisé.
+
+    Sans modèle supplémentaire (bloc B2) : combine la largeur de bouche
+    rapportée à l'écart inter-oculaire et l'élévation des commissures par
+    rapport au centre des lèvres. C'est volontairement coarse — l'usage
+    visé est la sélection d'expressions homogènes pour le composite Galton,
+    pas une analyse d'émotion fine.
+
+    Retourne `(expression, smile_score)` avec expression ∈ {'neutral','smiling'}
+    et smile_score ∈ [0,1], ou `(None, None)` si le mesh est inexploitable.
+    """
+    if mesh_norm is None or mesh_norm.ndim != 2 or mesh_norm.shape[0] <= _MESH_MOUTH_RIGHT:
+        return None, None
+    eye_l = _mesh_center(mesh_norm, _MESH_EYE_L)
+    eye_r = _mesh_center(mesh_norm, _MESH_EYE_R)
+    eye_dist = float(np.linalg.norm(eye_r - eye_l))
+    if eye_dist < 1e-6:
+        return None, None
+
+    corner_l = _mesh_point(mesh_norm, _MESH_MOUTH_LEFT)
+    corner_r = _mesh_point(mesh_norm, _MESH_MOUTH_RIGHT)
+    lip_top = _mesh_point(mesh_norm, _MESH_LIP_TOP)
+    lip_bottom = _mesh_point(mesh_norm, _MESH_LIP_BOTTOM)
+
+    mouth_width = float(np.linalg.norm(corner_r - corner_l)) / eye_dist
+    lip_center_y = (lip_top[1] + lip_bottom[1]) / 2.0
+    corner_y = (corner_l[1] + corner_r[1]) / 2.0
+    # y croît vers le bas : commissures plus hautes que le centre → lift > 0
+    lift = (lip_center_y - corner_y) / eye_dist
+
+    # Calibrage empirique : bouche neutre ~ ratio 0.95, sourire élargit +
+    # remonte les commissures. Deux composantes à poids égal, clampées.
+    width_term = (mouth_width - 0.95) / 0.55
+    lift_term = lift / 0.12
+    smile_score = max(0.0, min(1.0, 0.5 * width_term + 0.5 * lift_term))
+    expression = "smiling" if smile_score >= SMILE_THRESHOLD else "neutral"
+    return expression, round(smile_score, 4)
+
+
+def compute_quality_score(
+    eye_distance_px: int, yaw: float, aligned_bgr: np.ndarray | None
+) -> float:
+    """Score de portrait 0..1 = résolution × frontalité × netteté (bloc A6).
+
+    - **résolution** : écart inter-oculaire source rapporté à la cible 80 px
+      (plafonné à 1) — proxy de la taille réelle du visage dans la source.
+    - **frontalité** : 1 au front, → 0 au profil (|yaw| ≥ 45°).
+    - **netteté** : variance du Laplacien sur l'alignée en gris, normalisée.
+
+    Pondération 0.4 / 0.3 / 0.3. Sert à choisir le meilleur cliché (vignette,
+    export) et à trier l'audit. Si l'alignée est absente, la netteté est
+    neutralisée à 0.5 (on ne pénalise pas une info manquante).
+    """
+    resolution = max(0.0, min(1.0, eye_distance_px / EYE_DISTANCE_TARGET))
+    frontness = max(0.0, 1.0 - min(1.0, abs(yaw) / 45.0))
+    if aligned_bgr is not None and aligned_bgr.size:
+        gray = cv2.cvtColor(aligned_bgr, cv2.COLOR_BGR2GRAY)
+        lap_var = float(cv2.Laplacian(gray, cv2.CV_64F).var())
+        sharpness = max(0.0, min(1.0, lap_var / 150.0))
+    else:
+        sharpness = 0.5
+    return round(0.4 * resolution + 0.3 * frontness + 0.3 * sharpness, 4)
+
+
 def _purge_image(db, image_row: Image) -> None:
     """Supprime l'enregistrement Image + le fichier original sur disque.
 
@@ -304,9 +390,16 @@ def process_image(image_id: int) -> ProcessResult:
         # capturé le mesh (rare), on stocke NULL et l'UI fallback aux
         # 3 points historiques.
         landmarks_blob = None
+        expression = smile_score = None
         if lm.mesh_xy is not None and lm.mesh_xy.size:
             normalized = transform_landmarks_to_aligned(lm.mesh_xy, M)
             landmarks_blob = normalized.tobytes()
+            # v028 (B2) : expression depuis le mesh aligné, sans modèle externe.
+            expression, smile_score = compute_expression(normalized)
+
+        # v028 (A6) : score de qualité du portrait (résolution × frontalité ×
+        # netteté de l'alignée). Calculé ici car `aligned` est en main.
+        quality_score = compute_quality_score(lm.eye_distance_px, lm.yaw, aligned)
 
         # v025 : compte les visages avant alignement (modèle séparé,
         # n'altère pas le pipeline d'alignement single-face). Au pire 1
@@ -315,6 +408,13 @@ def process_image(image_id: int) -> ProcessResult:
         # que FaceMesh manque. >1 = composition multi-personnes.
         faces_in_image = count_faces(image_bgr)
 
+        # v028 (A4) : résout l'agence/crédit photo (chokepoint unique par image
+        # valide). Pas de réseau, dérivé de copyright/caption/url déjà en DB.
+        from photo_credit import parse_agency
+
+        image_row.photo_agency = parse_agency(
+            image_row.copyright_text, image_row.source_url, image_row.caption
+        )
         image_row.aligned_path = str(aligned_path)
         image_row.analysis_status = "done"
         db.add(
@@ -335,6 +435,9 @@ def process_image(image_id: int) -> ProcessResult:
                 nose_y=lm.nose[1],
                 landmarks_blob=landmarks_blob,
                 face_count=max(1, faces_in_image),
+                quality_score=quality_score,
+                expression=expression,
+                smile_score=smile_score,
             )
         )
         db.commit()
@@ -514,6 +617,58 @@ def backfill_face_counts(limit: int | None = None) -> dict[str, int]:
     return counts
 
 
+def backfill_quality_expression(limit: int | None = None) -> dict[str, int]:
+    """Rétro-calcule quality_score + expression/smile_score pour l'historique (v028).
+
+    Pour chaque `FaceAnalysis` sans `quality_score` : recalcule la qualité
+    depuis `eye_distance_px`/`yaw` + l'image **alignée** (netteté), et
+    l'expression depuis `landmarks_blob` s'il est présent (sinon expression
+    reste NULL — pas de mesh à exploiter). Idempotent.
+    """
+    db = SessionLocal()
+    try:
+        pairs = db.execute(
+            select(Image, FaceAnalysis)
+            .join(FaceAnalysis, FaceAnalysis.image_id == Image.id)
+            .where(FaceAnalysis.quality_score.is_(None))
+            .order_by(Image.id)
+            .limit(limit if limit else 100000)
+        ).all()
+    finally:
+        db.close()
+
+    counts = {"total": len(pairs), "quality": 0, "expression": 0, "skipped": 0}
+    for img, fa in pairs:
+        try:
+            aligned = cv2.imread(img.aligned_path) if img.aligned_path else None
+            quality = compute_quality_score(
+                fa.eye_distance_px or 0, fa.yaw or 0.0, aligned
+            )
+            expression = smile_score = None
+            if fa.landmarks_blob:
+                mesh_norm = np.frombuffer(fa.landmarks_blob, dtype=np.float32).reshape(-1, 2)
+                expression, smile_score = compute_expression(mesh_norm)
+            db2 = SessionLocal()
+            try:
+                fa_row = db2.get(FaceAnalysis, fa.id)
+                if fa_row is not None:
+                    fa_row.quality_score = quality
+                    fa_row.expression = expression
+                    fa_row.smile_score = smile_score
+                    db2.commit()
+                    counts["quality"] += 1
+                    if expression is not None:
+                        counts["expression"] += 1
+            finally:
+                db2.close()
+        except Exception:
+            log.exception("backfill_quality_expression failed for image %s", img.id)
+            counts["skipped"] += 1
+
+    log.info("backfill_quality_expression : %s", counts)
+    return counts
+
+
 def process_pending(limit: int = 100) -> dict[str, int]:
     db = SessionLocal()
     try:
@@ -547,6 +702,8 @@ if __name__ == "__main__":
                         help="Migration : supprime images héritées en failed/no_face")
     parser.add_argument("--backfill-face-count", action="store_true",
                         help="Migration v025 : compte les visages des images existantes")
+    parser.add_argument("--backfill-quality", action="store_true",
+                        help="Migration v028 : score qualité + expression des images existantes")
     parser.add_argument("--image-id", type=int)
     parser.add_argument("--limit", type=int, default=100)
     args = parser.parse_args()
@@ -560,6 +717,9 @@ if __name__ == "__main__":
     elif args.backfill_face_count:
         r = backfill_face_counts(limit=args.limit if args.limit != 100 else None)
         print(f"backfill face_count : {r}")
+    elif args.backfill_quality:
+        r = backfill_quality_expression(limit=args.limit if args.limit != 100 else None)
+        print(f"backfill quality/expression : {r}")
     elif args.reprocess_pending:
         r = process_pending(limit=args.limit)
         print(f"résultats : {r}")

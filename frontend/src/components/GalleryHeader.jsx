@@ -1,5 +1,8 @@
 import { useState } from "react";
+import BehavioralProfile from "./BehavioralProfile";
 import CollectButton from "./CollectButton";
+import CooccurrencePartners from "./CooccurrencePartners";
+import EntityTimeline from "./EntityTimeline";
 import CompareWithPicker from "./CompareWithPicker";
 import DdgPicker from "./DdgPicker";
 import DeleteEntityButton from "./DeleteEntityButton";
@@ -50,22 +53,38 @@ export default function GalleryHeader({
   onClearGaltonSelection,
   detailsOpen = false,
   onToggleDetails,
+  selectedDate = null,
+  onSelectDate,
 }) {
   const [galtonOpen, setGaltonOpen] = useState(false);
   if (!entity) return null;
 
   const birthLine = entity.birth_date
-    ? `${formatDate(entity.birth_date)}${entity.birth_place ? ` — ${entity.birth_place}` : ""}`
+    ? `${formatDate(entity.birth_date)}${entity.birth_place ? ` — ${entity.birth_place}` : ""}${entity.current_age != null ? ` · ${entity.current_age} ans` : ""}`
     : null;
   const deathLine = entity.death_date
     ? `${formatDate(entity.death_date)}${entity.death_place ? ` — ${entity.death_place}` : ""}${entity.age_at_death ? ` · ${entity.age_at_death} ans` : ""}`
     : null;
+  const join = (arr) => (arr?.length ? arr.join(" · ") : null);
+  // Attributs sensibles (RGPD art. 9) — exposés par décision propriétaire
+  // 2026-05-30. Regroupés sous un libellé distinct côté UI.
+  const hasSensitive =
+    entity.religion?.length ||
+    entity.ethnic_group?.length ||
+    entity.sexual_orientation ||
+    entity.medical_condition?.length;
   const hasBio =
     birthLine ||
     deathLine ||
+    entity.gender ||
     entity.nationalities?.length ||
     entity.occupations?.length ||
-    entity.employer;
+    entity.employer ||
+    entity.political_party?.length ||
+    entity.positions_held?.length ||
+    entity.awards?.length ||
+    entity.notable_works?.length ||
+    hasSensitive;
 
   return (
     <header className="px-8 py-6 border-b divider">
@@ -138,21 +157,49 @@ export default function GalleryHeader({
         {detailsOpen ? "▾" : "▸"} Infos & activité
       </button>
 
-      {detailsOpen && hasBio && (
-        <div className="mt-4 max-w-3xl space-y-1.5 text-sm">
-          <BioRow label="Naissance">{birthLine}</BioRow>
-          <BioRow label="Décès">{deathLine}</BioRow>
-          <BioRow label="Nationalité">
-            {entity.nationalities?.length
-              ? entity.nationalities.join(" · ")
-              : null}
-          </BioRow>
-          <BioRow label="Occupation">
-            {entity.occupations?.length
-              ? entity.occupations.join(" · ")
-              : null}
-          </BioRow>
-          <BioRow label="Employeur">{entity.employer}</BioRow>
+      {detailsOpen && (
+        // Zone dépliable « Infos & activité » : bio + heatmap presse +
+        // partenaires regroupés dans UN SEUL bloc borné + scrollable, pleine
+        // largeur. Le header étant hors de la zone scrollable de la galerie
+        // (parent overflow-hidden), regrouper ici garantit que la timeline
+        // reste atteignable (sinon une bio longue la repousse hors champ).
+        // Pleine largeur → les longues listes s'étalent à l'horizontale.
+        <div className="mt-4 w-full max-h-[55vh] overflow-y-auto pr-2">
+          <EntityTimeline
+            slug={entity.slug}
+            selectedDate={selectedDate}
+            onSelectDate={onSelectDate}
+          />
+          {hasBio && (
+            <div className="space-y-1.5 text-sm">
+              <BioRow label="Naissance">{birthLine}</BioRow>
+              <BioRow label="Décès">{deathLine}</BioRow>
+              <BioRow label="Genre">{entity.gender}</BioRow>
+              <BioRow label="Nationalité">{join(entity.nationalities)}</BioRow>
+              <BioRow label="Occupation">{join(entity.occupations)}</BioRow>
+              <BioRow label="Employeur">{entity.employer}</BioRow>
+              <BioRow label="Parti">{join(entity.political_party)}</BioRow>
+              <BioRow label="Fonctions">{join(entity.positions_held)}</BioRow>
+              <BioRow label="Distinctions">{join(entity.awards)}</BioRow>
+              <BioRow label="Œuvres">{join(entity.notable_works)}</BioRow>
+              {hasSensitive && (
+                <div className="pt-2 mt-2 border-t divider">
+                  <div
+                    className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-secondary)] mb-1.5"
+                    title="Données sensibles RGPD art. 9 — affichées par décision explicite du propriétaire (2026-05-30)."
+                  >
+                    ⚠ Données sensibles (Wikidata)
+                  </div>
+                  <BioRow label="Religion">{join(entity.religion)}</BioRow>
+                  <BioRow label="Origine">{join(entity.ethnic_group)}</BioRow>
+                  <BioRow label="Orientation">{entity.sexual_orientation}</BioRow>
+                  <BioRow label="Santé">{join(entity.medical_condition)}</BioRow>
+                </div>
+              )}
+            </div>
+          )}
+          <CooccurrencePartners slug={entity.slug} />
+          <BehavioralProfile slug={entity.slug} />
         </div>
       )}
 

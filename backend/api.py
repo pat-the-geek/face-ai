@@ -14,6 +14,7 @@ from database import (
     ArticleEntity,
     Entity,
     EntityAlias,
+    FaceAnalysis,
     Image,
     get_db,
 )
@@ -941,6 +942,7 @@ def get_article(article_id: int, db: Session = Depends(get_db)):
                 is_duplicate=bool(img.is_duplicate),
                 association_status=img.association_status,
                 identity_match_score=img.identity_match_score,
+                photo_agency=img.photo_agency,
                 article=ArticleRefOut.model_validate(img.article) if img.article else None,
                 face=FaceOut.model_validate(img.face_analysis) if img.face_analysis else None,
             )
@@ -1061,6 +1063,27 @@ def list_entities(
     )
 
 
+def _short_description(entity: Entity, max_len: int = 240) -> str | None:
+    """Description courte pour le tooltip carte.
+
+    Priorité au résumé Wikipédia, tronqué sur une frontière de mot (borne le
+    payload de /entities/map). Repli : occupations (2 premières) + nationalité —
+    suffisant pour situer la personne quand Wikipédia est absent.
+    """
+    summary = (entity.wiki_summary or "").strip()
+    if summary:
+        if len(summary) <= max_len:
+            return summary
+        cut = summary[:max_len].rsplit(" ", 1)[0].rstrip(",;:· ")
+        return f"{cut}…"
+    occ = [o for o in (entity.occupations or "").split("|") if o][:2]
+    nat = [n for n in (entity.nationalities or "").split("|") if n][:1]
+    bits = ", ".join(occ)
+    if nat:
+        bits = f"{bits} · {nat[0]}" if bits else nat[0]
+    return bits or None
+
+
 @app.get("/entities/map", response_model=list[EntityMapItem])
 def list_entities_map(db: Session = Depends(get_db)):
     """Entités géolocalisées pour la vue carte (v026).
@@ -1118,6 +1141,7 @@ def list_entities_map(db: Session = Depends(get_db)):
                 thumbnail_url=thumbnail_url,
                 image_count=e.image_count or 0,
                 is_favorite=bool(e.is_favorite),
+                description=_short_description(e),
             )
         )
     return out
@@ -1401,22 +1425,32 @@ def _build_fts_query(q: str) -> str | None:
     return " ".join(parts) if parts else None
 
 
+def _years_between(start: date, end: date) -> int:
+    """Années complètes écoulées entre deux dates (anniversaire non encore
+    atteint = -1). Mutualisé entre age_at_death et current_age."""
+    years = end.year - start.year
+    if (end.month, end.day) < (start.month, start.day):
+        years -= 1
+    return years
+
+
+def _split_pipe(value: str | None) -> list[str]:
+    return [s for s in (value or "").split("|") if s]
+
+
 def _entity_detail(entity: Entity) -> EntityDetail:
-    nationalities = [
-        s for s in (entity.nationalities or "").split("|") if s
-    ]
-    occupations = [
-        s for s in (entity.occupations or "").split("|") if s
-    ]
+    nationalities = _split_pipe(entity.nationalities)
+    occupations = _split_pipe(entity.occupations)
     age_at_death = None
+    current_age = None
     if entity.birth_date and entity.death_date:
-        years = entity.death_date.year - entity.birth_date.year
-        if (entity.death_date.month, entity.death_date.day) < (
-            entity.birth_date.month,
-            entity.birth_date.day,
-        ):
-            years -= 1
+        years = _years_between(entity.birth_date, entity.death_date)
         age_at_death = years if years >= 0 else None
+    elif entity.birth_date and not entity.death_date:
+        # A2 : âge courant uniquement pour les personnes vivantes (pas de
+        # death_date). Borné à des valeurs plausibles (garde-fou data sale).
+        years = _years_between(entity.birth_date, date.today())
+        current_age = years if 0 <= years <= 130 else None
     return EntityDetail(
         id=entity.id,
         name=entity.name,
@@ -1437,11 +1471,21 @@ def _entity_detail(entity: Entity) -> EntityDetail:
         birth_date=entity.birth_date,
         death_date=entity.death_date,
         age_at_death=age_at_death,
+        current_age=current_age,
         birth_place=entity.birth_place,
         death_place=entity.death_place,
         nationalities=nationalities,
         occupations=occupations,
         employer=entity.employer,
+        gender=entity.gender,
+        political_party=_split_pipe(entity.political_party),
+        positions_held=_split_pipe(entity.positions_held),
+        awards=_split_pipe(entity.awards),
+        notable_works=_split_pipe(entity.notable_works),
+        ethnic_group=_split_pipe(entity.ethnic_group),
+        religion=_split_pipe(entity.religion),
+        sexual_orientation=entity.sexual_orientation,
+        medical_condition=_split_pipe(entity.medical_condition),
     )
 
 
@@ -1690,6 +1734,118 @@ def get_entity(slug: str, db: Session = Depends(get_db)):
     return _entity_detail(entity)
 
 
+@app.get("/entities/{slug}/cooccurrences")
+def get_entity_cooccurrences(
+    slug: str,
+    limit: int = Query(10, ge=1, le=50),
+    db: Session = Depends(get_db),
+):
+    """Top partenaires de cooccurrence éditoriale (graphe matérialisé, A5)."""
+    from cooccurrence import top_cooccurrences
+
+    entity = db.scalar(select(Entity).where(Entity.slug == slug))
+    if entity is None or entity.wikidata_status == NOT_PERSON_STATUS:
+        raise HTTPException(status_code=404, detail="entity not found")
+    return {"slug": slug, "partners": top_cooccurrences(entity.id, limit=limit)}
+
+
+@app.get("/entities/{slug}/behavioral-profile")
+def get_entity_behavioral_profile(slug: str, db: Session = Depends(get_db)):
+    """Profil comportemental dérivé du corpus (B4) — centralité, volatilité,
+    ratio flagged, sources dominantes. Aucune source externe."""
+    from cooccurrence import behavioral_profile
+
+    entity = db.scalar(select(Entity).where(Entity.slug == slug))
+    if entity is None or entity.wikidata_status == NOT_PERSON_STATUS:
+        raise HTTPException(status_code=404, detail="entity not found")
+    profile = behavioral_profile(entity.id)
+    if profile is None:
+        raise HTTPException(status_code=404, detail="profile unavailable")
+    return profile
+
+
+@app.get("/corpus/demographics")
+def get_corpus_demographics(db: Session = Depends(get_db)):
+    """Agrégats démographiques du corpus (exploite l'enrichissement v027).
+
+    Borné par construction (top-N par axe). Exclut les tombstones not_person.
+    Distingue le genre **factuel** (Wikidata P21) du genre **estimé** (B1,
+    InsightFace sur les images) — deux distributions à ne pas amalgamer.
+    """
+    from photo_credit import agency_distribution
+
+    not_person = (Entity.wikidata_status.is_(None)) | (
+        Entity.wikidata_status != NOT_PERSON_STATUS
+    )
+
+    def _pipe_top(column, top=15):
+        rows = db.execute(
+            select(column).where(not_person, column.is_not(None))
+        ).all()
+        counter: dict[str, int] = {}
+        for (val,) in rows:
+            for label in (val or "").split("|"):
+                label = label.strip()
+                if label:
+                    counter[label] = counter.get(label, 0) + 1
+        return dict(sorted(counter.items(), key=lambda kv: kv[1], reverse=True)[:top])
+
+    # Genre factuel Wikidata (valeur unique).
+    gender_rows = db.execute(
+        select(Entity.gender, func.count())
+        .where(not_person, Entity.gender.is_not(None))
+        .group_by(Entity.gender)
+    ).all()
+    gender_factual = {r[0]: r[1] for r in gender_rows}
+
+    # Genre estimé depuis les visages (B1) — sur les images analysées.
+    est_gender_rows = db.execute(
+        select(FaceAnalysis.est_gender, func.count())
+        .where(FaceAnalysis.est_gender.is_not(None))
+        .group_by(FaceAnalysis.est_gender)
+    ).all()
+    gender_estimated = {r[0]: r[1] for r in est_gender_rows}
+
+    # Distribution d'âge courant (vivants) par tranche décennale.
+    today = date.today()
+    age_buckets: dict[str, int] = {}
+    born = db.execute(
+        select(Entity.birth_date).where(
+            not_person, Entity.birth_date.is_not(None), Entity.death_date.is_(None)
+        )
+    ).all()
+    for (bd,) in born:
+        age = _years_between(bd, today)
+        if 0 <= age <= 130:
+            bucket = f"{(age // 10) * 10}-{(age // 10) * 10 + 9}"
+            age_buckets[bucket] = age_buckets.get(bucket, 0) + 1
+    age_distribution = dict(
+        sorted(age_buckets.items(), key=lambda kv: int(kv[0].split("-")[0]))
+    )
+
+    deceased = (
+        db.scalar(
+            select(func.count())
+            .select_from(Entity)
+            .where(not_person, Entity.death_date.is_not(None))
+        )
+        or 0
+    )
+
+    return {
+        "gender_factual": gender_factual,
+        "gender_estimated": gender_estimated,
+        "nationalities": _pipe_top(Entity.nationalities),
+        "occupations": _pipe_top(Entity.occupations),
+        "political_party": _pipe_top(Entity.political_party),
+        "religion": _pipe_top(Entity.religion),
+        "ethnic_group": _pipe_top(Entity.ethnic_group),
+        "age_distribution": age_distribution,
+        "deceased_count": deceased,
+        "photo_agencies": agency_distribution(),
+    }
+
+
 @app.get("/entities/{slug}/export.jpg")
 def export_entity_jpg(slug: str, db: Session = Depends(get_db)):
     """Planche composite JPG (spec §11.6).
@@ -1862,6 +2018,7 @@ def get_entity_images(
             is_duplicate=bool(img.is_duplicate),
             association_status=img.association_status,
             identity_match_score=img.identity_match_score,
+            photo_agency=img.photo_agency,
             article=(
                 ArticleRefOut.model_validate(img.article) if img.article else None
             ),

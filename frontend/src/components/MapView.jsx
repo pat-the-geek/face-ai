@@ -61,6 +61,28 @@ function displayName(name) {
   return name;
 }
 
+// Tooltip de survol partagé entre points et marqueurs-photo : nom complet en
+// gras + description (résumé Wikipédia tronqué côté serveur, repli occupations).
+function EntityTooltip({ e }) {
+  return (
+    <Tooltip direction="top" offset={[0, -6]} opacity={1}>
+      {/* Boîte large (≫ haute) : la description s'étale à l'horizontale au lieu
+          de s'empiler. min-width évite les tooltips minuscules sur nom court. */}
+      <div
+        style={{ width: "max-content", minWidth: 220, maxWidth: 460 }}
+        className="leading-snug whitespace-normal"
+      >
+        <div className="font-semibold">{displayName(e.name)}</div>
+        {e.description && (
+          <div className="mt-0.5 text-[var(--text-secondary)] text-[11px]">
+            {e.description}
+          </div>
+        )}
+      </div>
+    </Tooltip>
+  );
+}
+
 // Décalage déterministe (±~1.5°) pour les points positionnés au centroïde d'un
 // pays : sans ça, toutes les personnes d'une même nationalité se superposent
 // exactement. Hash du slug → offset stable entre rendus.
@@ -199,7 +221,9 @@ export default function MapView() {
                 position={pos}
                 icon={photoIcon(e)}
                 eventHandlers={{ click: () => navigate(`/${e.slug}`) }}
-              />
+              >
+                <EntityTooltip e={e} />
+              </Marker>
             );
           }
           return (
@@ -215,7 +239,7 @@ export default function MapView() {
               }}
               eventHandlers={{ click: () => navigate(`/${e.slug}`) }}
             >
-              <Tooltip direction="top">{displayName(e.name)}</Tooltip>
+              <EntityTooltip e={e} />
             </CircleMarker>
           );
         })}

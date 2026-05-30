@@ -26,6 +26,7 @@ from backup import make_backup
 from dedup import compute_missing_embeddings, dedup_all_entities
 from entity_merge import auto_merge_by_qid
 from face_processor import process_pending
+from face_attributes import compute_missing_attributes
 from identity_audit import audit_all_entities, compute_missing_identities
 from wikidata import enrich_entity
 from worker_metrics import record_error, record_event, record_success
@@ -131,6 +132,12 @@ def _run_dedup_cycle() -> dict:
             summary = dedup_all_entities()
             cycle_summary.update(summary)
             log.info("dedup: %s", summary)
+            # v029 (A5) : le graphe de cooccurrence dépend d'article_entities,
+            # qui n'évolue qu'après ingestion. On le rafraîchit quand du
+            # nouveau contenu a été traité (proxy : embeddings calculés).
+            from cooccurrence import recompute_cooccurrence
+
+            cycle_summary["cooccurrence"] = recompute_cooccurrence()
         record_success("dedup", cycle_summary)
         return cycle_summary
     except Exception:
@@ -157,6 +164,12 @@ def _run_identity_cycle() -> dict:
             summary = audit_all_entities()
             cycle_summary["audit"] = summary
             log.info("audit identité: %s", summary)
+        # v028 (B1) : estimation âge/genre des images fraîchement embeddées.
+        # Même app InsightFace family ; passe bornée pour ne pas allonger le cycle.
+        attrs = compute_missing_attributes(limit=20)
+        cycle_summary["attributes"] = attrs
+        if attrs.get("done"):
+            log.info("attributs âge/genre: %s", attrs)
         record_success("identity", cycle_summary)
         return cycle_summary
     except Exception:

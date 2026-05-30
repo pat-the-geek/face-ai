@@ -209,6 +209,8 @@ export default function FaceCard({
         <IdentityBadge image={image} />
       </div>
 
+      <FaceAttributes image={image} face={face} />
+
       {(image.caption || image.copyright) && (
         <div className="px-3 py-2 text-xs leading-snug">
           {image.caption && <p>{image.caption}</p>}
@@ -264,6 +266,61 @@ export default function FaceCard({
         <SourceLightbox image={image} onClose={() => setShowSource(false)} />
       )}
     </article>
+  );
+}
+
+/**
+ * Ligne d'attributs dérivés/estimés d'une image (v028). Affichée seulement
+ * si au moins un attribut est présent. Les valeurs « est. » sont des
+ * **estimations** du modèle (âge/genre faciaux) et l'expression dérive du
+ * mesh — distinctes des faits Wikidata de l'entité, marquées « est. ».
+ */
+function FaceAttributes({ image, face }) {
+  if (!face && !image.photo_agency) return null;
+  const bits = [];
+  if (face?.quality_score != null) {
+    bits.push(
+      <span
+        key="q"
+        title="Score de qualité de portrait : résolution × frontalité × netteté (0..1)"
+      >
+        ◳ {face.quality_score.toFixed(2)}
+      </span>,
+    );
+  }
+  if (face?.expression) {
+    const label = face.expression === "smiling" ? "sourire" : "neutre";
+    bits.push(
+      <span key="e" title={`Expression dérivée du mesh${face.smile_score != null ? ` · smile ${face.smile_score.toFixed(2)}` : ""}`}>
+        ☺ {label}
+      </span>,
+    );
+  }
+  if (face?.est_age != null || face?.est_gender) {
+    const parts = [];
+    if (face.est_gender) parts.push(face.est_gender);
+    if (face.est_age != null) parts.push(`~${Math.round(face.est_age)} ans`);
+    bits.push(
+      <span
+        key="ag"
+        title="Âge et genre ESTIMÉS depuis le visage (InsightFace) — inférence sur l'image, pas un fait sur la personne"
+      >
+        est. {parts.join(" ")}
+      </span>,
+    );
+  }
+  if (image.photo_agency) {
+    bits.push(
+      <span key="pa" title="Agence / crédit photo résolu" className="text-[var(--text-primary)]">
+        © {image.photo_agency}
+      </span>,
+    );
+  }
+  if (!bits.length) return null;
+  return (
+    <div className="px-3 py-1.5 border-t divider flex flex-wrap gap-x-3 gap-y-1 text-[10px] font-mono text-[var(--text-secondary)]">
+      {bits}
+    </div>
   );
 }
 

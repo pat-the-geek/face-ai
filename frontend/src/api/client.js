@@ -50,6 +50,11 @@ export const api = {
     }),
   entity: (slug) => jsonFetch(`/entities/${slug}`),
   entitiesMap: () => jsonFetch("/entities/map"),
+  entityCooccurrences: (slug, limit = 10) =>
+    jsonFetch(`/entities/${slug}/cooccurrences`, { limit }),
+  entityBehavioralProfile: (slug) =>
+    jsonFetch(`/entities/${slug}/behavioral-profile`),
+  corpusDemographics: () => jsonFetch("/corpus/demographics"),
   entityImages: (slug, filters = {}) =>
     jsonFetch(`/entities/${slug}/images`, filters),
   search: (q) => jsonFetch("/entities/search", { q }),

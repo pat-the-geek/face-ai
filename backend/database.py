@@ -51,6 +51,27 @@ class Entity(Base):
     occupations = Column(Text)
     employer = Column(Text)
 
+    # Enrichissement Wikidata factuel étendu (v027, bloc A — intérêt légitime)
+    gender = Column(Text)  # P21, label unique ("homme"/"femme"/…)
+    political_party = Column(Text)  # P102, pipe-separated
+    positions_held = Column(Text)  # P39, pipe-separated
+    awards = Column(Text)  # P166, pipe-separated
+    notable_works = Column(Text)  # P800, pipe-separated
+
+    # Attributs Wikidata sensibles — RGPD art. 9 (v027, bloc B).
+    # DÉCISION PROPRIÉTAIRE 2026-05-30 (Patrick Ostertag) : stockés et exposés
+    # normalement, en connaissance du fait que ces catégories sortent du régime
+    # d'intérêt légitime art. 6.1.f sur lequel CLAUDE.md §1.5 ancrait le projet.
+    # Atténuation déterminante : périmètre limité à des PERSONNALITÉS PUBLIQUES
+    # et valeurs EXCLUSIVEMENT publiques reprises telles quelles de Wikidata
+    # (aucune inférence, aucune source privée) — cadre proche de l'art. 9.2.e
+    # (données manifestement rendues publiques). Revue de conformité art. 9
+    # recommandée avant diffusion élargie. Cf. CLAUDE.md pour le détail.
+    ethnic_group = Column(Text)  # P172, pipe-separated
+    religion = Column(Text)  # P140, pipe-separated
+    sexual_orientation = Column(Text)  # P91, label unique
+    medical_condition = Column(Text)  # P1050, pipe-separated
+
     # Position géographique pour la vue carte (v026)
     latitude = Column(Float)
     longitude = Column(Float)
@@ -143,6 +164,9 @@ class Image(Base):
     analysis_status = Column(Text, server_default="pending")
     # v023 : trace de provenance pour distinguer corpus WUDD vs hors-corpus
     source_provider = Column(Text, server_default="wudd")
+    # v028 : agence/crédit photo résolu depuis copyright_text/source_url/caption
+    # (Getty, Reuters, AFP, Keystone, Wikimedia…). NULL = non résolu.
+    photo_agency = Column(Text)
 
     embedding = Column(LargeBinary)
     is_duplicate = Column(Boolean, server_default="0")
@@ -196,6 +220,21 @@ class FaceAnalysis(Base):
     # multi-personnes — utile pour distinguer flagged "mauvaise identité"
     # vs flagged "image de groupe" dans l'audit P9.
     face_count = Column(Integer)
+    # v028 : score de qualité de portrait 0..1 (résolution × frontalité ×
+    # netteté). Permet de choisir le meilleur cliché (vignette/export) et de
+    # trier l'audit. Calculé dans process_image, recalculable via backfill.
+    quality_score = Column(Float)
+    # v028 (bloc B1) : âge et genre **estimés depuis le visage** par
+    # InsightFace genderage (buffalo_s). Distincts des champs Wikidata
+    # factuels de l'entité — ce sont des inférences sur l'image, pas des
+    # faits. est_gender ∈ {'M','F'}. Nullable (passe asynchrone).
+    est_age = Column(Float)
+    est_gender = Column(Text)
+    # v028 (bloc B2) : expression dérivée du mesh 478 points (sans modèle
+    # supplémentaire). smile_score 0..1 ; expression ∈ {'neutral','smiling'}.
+    # Sert notamment le composite Galton (sélection d'expressions homogènes).
+    smile_score = Column(Float)
+    expression = Column(Text)
     analyzed_at = Column(DateTime, server_default=func.current_timestamp())
 
     image = relationship("Image", back_populates="face_analysis")
@@ -205,6 +244,29 @@ class FaceAnalysis(Base):
         """Exposé via `FaceOut.has_full_mesh` pour l'UI : signale si on
         peut afficher le mesh 478 points (sinon fallback aux 3 historiques)."""
         return self.landmarks_blob is not None
+
+
+class EntityCooccurrence(Base):
+    """Arêtes matérialisées du graphe de cooccurrence éditoriale (v029, A5).
+
+    Une ligne = une paire d'entités apparaissant ensemble dans `shared_articles`
+    articles distincts. Convention `entity_a_id < entity_b_id` (paire non
+    ordonnée stockée une seule fois). Recalculé en masse par
+    `cooccurrence.recompute_cooccurrence` (le calcul à la volée par paire reste
+    dispo dans `compare_entities`, mais ne scale pas pour un graphe complet).
+    Seules les paires `shared_articles >= COOCCURRENCE_MIN_SHARED` sont
+    matérialisées pour borner la table.
+    """
+    __tablename__ = "entity_cooccurrence"
+
+    entity_a_id = Column(
+        Integer, ForeignKey("entities.id", ondelete="CASCADE"), primary_key=True
+    )
+    entity_b_id = Column(
+        Integer, ForeignKey("entities.id", ondelete="CASCADE"), primary_key=True
+    )
+    shared_articles = Column(Integer, nullable=False, server_default="0")
+    updated_at = Column(DateTime, server_default=func.current_timestamp())
 
 
 class WorkerEvent(Base):
