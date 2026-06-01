@@ -109,6 +109,18 @@ export default function FlipbookOverlay({ controller }) {
         </button>
         <span className="mx-2 text-[var(--immersive-separator)]">|</span>
         <button
+          onClick={controller.toggleChrono}
+          className={
+            controller.chrono
+              ? "text-[var(--immersive-text-primary)]"
+              : "text-[var(--immersive-text-muted)] hover:text-[var(--immersive-text-primary)] transition-colors"
+          }
+          title="Trier par date de publication (ancien → récent) — observer l'évolution dans le temps"
+        >
+          ⏱ Chrono
+        </button>
+        <span className="mx-2 text-[var(--immersive-separator)]">|</span>
+        <button
           onClick={() => setShowLandmarks((v) => !v)}
           className={
             showLandmarks
@@ -178,6 +190,20 @@ export default function FlipbookOverlay({ controller }) {
       >
         <div className="flex justify-between gap-8 items-start">
           <div className="flex-1 min-w-0">
+            {current.article?.published_at && (
+              <p
+                className={
+                  controller.chrono
+                    ? "text-accent mb-0.5"
+                    : "text-[var(--immersive-text-muted)] mb-0.5"
+                }
+              >
+                {current.article.published_at}
+                {controller.chrono
+                  ? ` · ${controller.currentIdx + 1}ᵉ dans l'ordre chronologique`
+                  : ""}
+              </p>
+            )}
             {current.caption && (
               <p className="text-[var(--immersive-text-primary)] truncate">{current.caption}</p>
             )}

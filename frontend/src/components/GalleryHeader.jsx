@@ -9,6 +9,7 @@ import DeleteEntityButton from "./DeleteEntityButton";
 import FavoriteToggle from "./FavoriteToggle";
 import GaltonComposite from "./GaltonComposite";
 import PoseFilter from "./PoseFilter";
+import SourcesBreakdown from "./SourcesBreakdown";
 
 const FR_DATE = new Intl.DateTimeFormat("fr-FR", {
   day: "numeric",
@@ -200,6 +201,7 @@ export default function GalleryHeader({
           )}
           <CooccurrencePartners slug={entity.slug} />
           <BehavioralProfile slug={entity.slug} />
+          <SourcesBreakdown slug={entity.slug} />
         </div>
       )}
 

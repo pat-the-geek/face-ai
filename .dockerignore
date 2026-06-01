@@ -1,0 +1,20 @@
+# Données bind-montées au runtime, jamais COPYées dans les images.
+# Les exclure évite de tarer ~Go de contexte et la course sur le journal SQLite.
+.git
+data/
+static/
+models/
+deploy_backups/
+*.tar.gz
+
+# Caches / artefacts
+**/__pycache__/
+*.pyc
+**/node_modules/
+frontend/dist/
+.pytest_cache/
+htmlcov/
+.coverage
+
+# Secrets / local
+.env

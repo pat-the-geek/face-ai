@@ -21,13 +21,14 @@ import time
 from sqlalchemy import select
 
 from database import Entity, SessionLocal
-from config import WUDD_BATCH_CYCLE_MINUTES
+from config import NOTIFY_ENABLED, NOTIFY_POLL_SECONDS, WUDD_BATCH_CYCLE_MINUTES
 from backup import make_backup
 from dedup import compute_missing_embeddings, dedup_all_entities
 from entity_merge import auto_merge_by_qid
 from face_processor import process_pending
 from face_attributes import compute_missing_attributes
 from identity_audit import audit_all_entities, compute_missing_identities
+from notifications import run_notify_cycle
 from wikidata import enrich_entity
 from worker_metrics import record_error, record_event, record_success
 from wudd_articles_batch import run_batch as wudd_articles_run_batch
@@ -278,6 +279,27 @@ def backup_loop() -> None:
         time.sleep(BACKUP_POLL_SECONDS)
 
 
+def _run_notify_cycle() -> dict:
+    try:
+        summary = run_notify_cycle()
+        if any(v for k, v in summary.items() if k != "skipped"):
+            log.info("notify : %s", summary)
+        record_success("notify", summary)
+        return summary
+    except Exception:
+        log.exception("notify erreur")
+        record_error("notify")
+        return {}
+
+
+def notify_loop() -> None:
+    """Veille proactive Discord (v030) — pics de visibilité, photos
+    inhabituelles (flagged), nouvelles personnalités. No-op si désactivé."""
+    while True:
+        _run_notify_cycle()
+        time.sleep(NOTIFY_POLL_SECONDS)
+
+
 def main() -> None:
     logging.basicConfig(
         level=logging.INFO,
@@ -309,6 +331,14 @@ def main() -> None:
         ),
         threading.Thread(target=backup_loop, daemon=True, name="backup"),
     ]
+    # Veille Discord : thread démarré seulement si configuré (webhook présent).
+    if NOTIFY_ENABLED:
+        threads.append(
+            threading.Thread(target=notify_loop, daemon=True, name="notify")
+        )
+        log.info("notifications Discord activées (poll %ss)", NOTIFY_POLL_SECONDS)
+    else:
+        log.info("notifications Discord désactivées (pas de webhook)")
     for t in threads:
         t.start()
 

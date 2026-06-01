@@ -60,3 +60,58 @@ CENTROID_SUGGEST_DISTANCE = float(os.getenv("CENTROID_SUGGEST_DISTANCE", "0.45")
 # (sinon ~tout couple co-cité une fois, bruit + volume). 2 = au moins deux
 # co-occurrences éditoriales pour considérer un lien.
 COOCCURRENCE_MIN_SHARED = int(os.getenv("COOCCURRENCE_MIN_SHARED", "2"))
+
+# Part de présence (share of voice, v030). Fenêtre glissante par défaut pour
+# le classement « qui domine la presse en ce moment » + comparaison à la
+# fenêtre précédente pour la tendance.
+SHARE_OF_VOICE_WINDOW_DAYS = int(os.getenv("SHARE_OF_VOICE_WINDOW_DAYS", "30"))
+
+# ── Notifications Discord (veille proactive, v030) ──────────────────────
+# Webhook réutilisé de WUDD.ai (sortie réseau assumée, cf. CLAUDE.md §1.5).
+# Vide → notifications désactivées (le worker n'émet rien). On ne logge
+# jamais l'URL en clair.
+DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL", "")
+NOTIFY_ENABLED = (
+    os.getenv("FACE_AI_NOTIFY_ENABLED", "true").lower() == "true"
+    and bool(DISCORD_WEBHOOK_URL)
+)
+# Cadence du notify_loop. 10 min : assez réactif pour de la veille, sans
+# spammer (les pics se mesurent en jours, les flagged arrivent par l'ingestion).
+NOTIFY_POLL_SECONDS = int(os.getenv("FACE_AI_NOTIFY_POLL_SECONDS", "600"))
+# Scénario A « pic de visibilité » : fenêtre courante vs précédente.
+# On alerte si la fenêtre courante compte ≥ MIN articles ET ≥ RATIO × la
+# précédente (évite le bruit des petites entités à 1→3 articles).
+NOTIFY_SPIKE_WINDOW_DAYS = int(os.getenv("NOTIFY_SPIKE_WINDOW_DAYS", "7"))
+NOTIFY_SPIKE_MIN_ARTICLES = int(os.getenv("NOTIFY_SPIKE_MIN_ARTICLES", "5"))
+NOTIFY_SPIKE_RATIO = float(os.getenv("NOTIFY_SPIKE_RATIO", "3.0"))
+NOTIFY_SPIKE_MAX_PER_CYCLE = int(os.getenv("NOTIFY_SPIKE_MAX_PER_CYCLE", "5"))
+# Scénario B « photo inhabituelle » : images flaggées récemment ingérées.
+NOTIFY_FLAGGED_LOOKBACK_HOURS = int(os.getenv("NOTIFY_FLAGGED_LOOKBACK_HOURS", "24"))
+NOTIFY_FLAGGED_MAX_PER_CYCLE = int(os.getenv("NOTIFY_FLAGGED_MAX_PER_CYCLE", "8"))
+# Scénario C « nouvelle personne » : entité PERSON fraîchement créée
+# (first_seen récent) AYANT déjà au moins un portrait aligné (« il faut une
+# photo »). On notifie une fois par entité. Lookback large car le portrait
+# arrive en asynchrone après la création de l'entité.
+NOTIFY_NEW_PERSON_LOOKBACK_HOURS = int(
+    os.getenv("NOTIFY_NEW_PERSON_LOOKBACK_HOURS", "48")
+)
+NOTIFY_NEW_PERSON_MAX_PER_CYCLE = int(
+    os.getenv("NOTIFY_NEW_PERSON_MAX_PER_CYCLE", "8")
+)
+
+# Scénario D « palier corpus » : notification chaque fois que le nombre de
+# personnalités gérées franchit un bloc (50 par défaut → prochain à 3050).
+# Dédup persistante via un fichier d'état (worker_events est purgé à 7 j).
+NOTIFY_MILESTONE_BLOCK = int(os.getenv("NOTIFY_MILESTONE_BLOCK", "50"))
+
+# ── Synthèse par IA locale Ollama (v030) ────────────────────────────────
+# La synthèse jointe aux notifications est rédigée par un LLM local (Ollama,
+# OpenAI-compatible :11434), même instance que WUDD.ai. Repli déterministe
+# (champs bruts) si Ollama est injoignable. L'hôte est résolu dans llm.py
+# (host.docker.internal en conteneur, localhost sinon ; surchargé par
+# OLLAMA_HOST_DOCKER / OLLAMA_HOST_LOCAL / OLLAMA_HOST).
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
+OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "60"))
+OLLAMA_SYNTHESIS_ENABLED = (
+    os.getenv("FACE_AI_OLLAMA_SYNTHESIS", "true").lower() == "true"
+)

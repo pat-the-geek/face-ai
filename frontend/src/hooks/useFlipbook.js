@@ -1,21 +1,58 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 const SPEEDS = [0.5, 1, 2, 4];
 
 /**
+ * Tri chronologique des images par date de publication de l'article
+ * (ancien → récent). Les images sans date passent en fin. Copie stable —
+ * ne mute pas le tableau source.
+ */
+function orderImages(images, chrono) {
+  const list = images || [];
+  if (!chrono) return list;
+  return [...list].sort((a, b) => {
+    const da = a.article?.published_at || "";
+    const db = b.article?.published_at || "";
+    if (!da && !db) return 0;
+    if (!da) return 1;
+    if (!db) return -1;
+    return da.localeCompare(db);
+  });
+}
+
+/**
  * Contrôle du mode Flipbook (spec §7.5).
  *
- * État : index courant, ouverture, lecture auto, vitesse, mode composite.
- * Navigation : ←/→ clavier, espace pour pause, Échap pour fermer.
+ * État : index courant, ouverture, lecture auto, vitesse, mode composite,
+ * tri chronologique. Navigation : ←/→ clavier, espace pour pause, Échap.
  * Boucle : prev sur le premier renvoie au dernier, et vice-versa.
+ *
+ * Mode chrono : réordonne les images par date d'article (ancien → récent),
+ * utile pour observer l'évolution d'apparence dans le temps. Le basculement
+ * préserve l'image courante (remap de l'index sur la nouvelle liste).
  */
 export function useFlipbook(images) {
-  const total = images?.length || 0;
+  const [chrono, setChrono] = useState(false);
+  const ordered = useMemo(() => orderImages(images, chrono), [images, chrono]);
+  const total = ordered.length;
   const [currentIdx, setCurrentIdx] = useState(0);
   const [isOpen, setIsOpen] = useState(false);
   const [autoPlay, setAutoPlay] = useState(false);
   const [fps, setFps] = useState(2);
   const [composite, setComposite] = useState(false);
+
+  // Bascule le tri chrono en gardant l'image courante à l'écran.
+  const toggleChrono = useCallback(() => {
+    setChrono((prev) => {
+      const next = !prev;
+      const curId = ordered[currentIdx]?.id;
+      if (curId != null) {
+        const idx = orderImages(images, next).findIndex((im) => im.id === curId);
+        if (idx >= 0) setCurrentIdx(idx);
+      }
+      return next;
+    });
+  }, [images, ordered, currentIdx]);
 
   // Si la liste change (changement de filtre, d'entité), on borne l'index
   useEffect(() => {
@@ -84,8 +121,8 @@ export function useFlipbook(images) {
   }, [isOpen, autoPlay, fps, next, total]);
 
   return {
-    images,
-    current: images?.[currentIdx] ?? null,
+    images: ordered,
+    current: ordered[currentIdx] ?? null,
     currentIdx,
     total,
     isOpen,
@@ -100,6 +137,8 @@ export function useFlipbook(images) {
     setFps,
     composite,
     setComposite,
+    chrono,
+    toggleChrono,
     speeds: SPEEDS,
   };
 }

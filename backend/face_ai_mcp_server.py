@@ -976,6 +976,47 @@ def get_corpus_demographics() -> dict:
         db.close()
 
 
+@mcp.tool()
+def get_share_of_voice(window_days: int = 30, limit: int = 20) -> dict:
+    """Part de présence (share of voice) sur une fenêtre glissante (v030).
+
+    Classe les entités par présence presse sur les `window_days` derniers
+    jours, avec leur **part** (% des mentions de la fenêtre) et leur
+    **tendance** vs la fenêtre précédente de même durée (`up`/`down`/`flat`,
+    ou `new` si l'entité était absente avant). Métrique = articles distincts.
+
+    Répond à « qui domine la presse en ce moment ? qui monte, qui descend ? ».
+    Distinct de `list_most_active` (cumul historique) : ici c'est **récent +
+    tendance**. Exclut les tombstones not_person.
+    """
+    from presence import compute_share_of_voice
+
+    return compute_share_of_voice(window_days=window_days, limit=limit)
+
+
+@mcp.tool()
+def get_entity_sources(slug: str) -> dict:
+    """Cartographie des sources d'une entité (v030).
+
+    Ventile les images de l'entité par **agence photo** (`photo_agency` :
+    Getty, Reuters, AFP…) et par **domaine de presse** (`source_domain`), avec
+    le compte et le pourcentage. Permet de juger la diversité/dépendance de
+    couverture. Complète `get_behavioral_profile.dominant_sources` (top 3
+    domaines seulement) par la ventilation complète + les agences.
+    """
+    from presence import entity_sources
+
+    db = SessionLocal()
+    try:
+        entity = db.scalar(select(Entity).where(Entity.slug == slug))
+        if entity is None or entity.wikidata_status == "not_person":
+            return {"error": "entity not found", "slug": slug}
+        eid, name = entity.id, entity.name
+    finally:
+        db.close()
+    return {"slug": slug, "name": name, **entity_sources(eid)}
+
+
 # ──────────────────────────────────────────────────────────────────────
 # Ressources MCP (spec §12.4) — exposent l'état du corpus comme des
 # "fichiers" lisibles par l'agent. Une ressource = un GET idempotent

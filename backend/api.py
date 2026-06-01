@@ -8,6 +8,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy import bindparam, func, or_, select, text
 from sqlalchemy.orm import Session, joinedload
 
+import config
 from config import STATIC_DIR
 from database import (
     Article,
@@ -1852,6 +1853,58 @@ def get_corpus_demographics(db: Session = Depends(get_db)):
         "deceased_count": deceased,
         "photo_agencies": agency_distribution(),
     }
+
+
+@app.get("/corpus/share-of-voice")
+def get_share_of_voice(
+    window_days: int = Query(30, ge=1, le=365),
+    limit: int = Query(20, ge=1, le=100),
+    db: Session = Depends(get_db),
+):
+    """Part de présence (share of voice, v030) sur une fenêtre glissante.
+
+    Classement des entités les plus présentes dans la presse + part (% des
+    mentions) + tendance vs la fenêtre précédente. Exclut les tombstones
+    not_person. Métrique = articles distincts (cf. tri `sort_by=activity`).
+    """
+    from presence import compute_share_of_voice
+
+    return compute_share_of_voice(window_days=window_days, limit=limit)
+
+
+@app.get("/entities/{slug}/sources")
+def get_entity_sources(slug: str, db: Session = Depends(get_db)):
+    """Cartographie des sources d'une entité (v030) : ventilation des images
+    par agence (`photo_agency`) et par domaine de presse (`source_domain`)."""
+    from presence import entity_sources
+
+    entity = db.scalar(select(Entity).where(Entity.slug == slug))
+    if entity is None or entity.wikidata_status == NOT_PERSON_STATUS:
+        raise HTTPException(status_code=404, detail="entity not found")
+    return {"slug": slug, "name": entity.name, **entity_sources(entity.id)}
+
+
+@app.post("/admin/notify-test")
+def admin_notify_test():
+    """Envoie une notification Discord de test (avec image annotée landmarks)
+    pour vérifier le webhook. Renvoie 503 si les notifications sont OFF."""
+    from notifications import send_test_notification
+
+    if not config.NOTIFY_ENABLED:
+        raise HTTPException(
+            status_code=503,
+            detail="notifications désactivées (DISCORD_WEBHOOK_URL absent ou FACE_AI_NOTIFY_ENABLED=false)",
+        )
+    return {"sent": send_test_notification()}
+
+
+@app.post("/admin/notify-run")
+def admin_notify_run():
+    """Force un cycle de détection/notification (pics + flagged) hors cadence
+    du worker. Utile pour tester ou rattraper après un redémarrage."""
+    from notifications import run_notify_cycle
+
+    return run_notify_cycle()
 
 
 @app.get("/entities/{slug}/export.jpg")

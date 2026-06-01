@@ -11,6 +11,7 @@ import FontScaler from "./components/FontScaler";
 import GalleryPanel from "./components/GalleryPanel";
 import GlobalSearch from "./components/GlobalSearch";
 import MapView from "./components/MapView";
+import ShareOfVoice from "./components/ShareOfVoice";
 import SplitScreen from "./components/SplitScreen";
 import { api } from "./api/client";
 
@@ -21,9 +22,10 @@ export default function App() {
   const onAuditRoute = location.pathname === "/audit";
   const onAdminRoute = location.pathname === "/admin";
   const onMapRoute = location.pathname === "/carte";
+  const onTrendsRoute = location.pathname === "/tendances";
   const onCompareRoute = location.pathname.startsWith("/compare/");
   const fullWidthRoute =
-    onAuditRoute || onAdminRoute || onMapRoute || onCompareRoute;
+    onAuditRoute || onAdminRoute || onMapRoute || onTrendsRoute || onCompareRoute;
 
   const { data: flagged } = useQuery({
     queryKey: ["flagged"],
@@ -88,6 +90,16 @@ export default function App() {
             Carte
           </Link>
           <Link
+            to="/tendances"
+            className={`transition-colors ${
+              onTrendsRoute
+                ? "text-accent"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            Tendances
+          </Link>
+          <Link
             to="/admin"
             className={`transition-colors ${
               onAdminRoute
@@ -128,6 +140,7 @@ export default function App() {
             <Route path="/audit" element={<AuditPanel />} />
             <Route path="/admin" element={<AdminPanel />} />
             <Route path="/carte" element={<MapView />} />
+            <Route path="/tendances" element={<ShareOfVoice />} />
             <Route
               path="/compare/:slugA/:slugB"
               element={<SplitScreen />}

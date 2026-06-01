@@ -55,6 +55,9 @@ export const api = {
   entityBehavioralProfile: (slug) =>
     jsonFetch(`/entities/${slug}/behavioral-profile`),
   corpusDemographics: () => jsonFetch("/corpus/demographics"),
+  shareOfVoice: ({ windowDays = 30, limit = 20 } = {}) =>
+    jsonFetch("/corpus/share-of-voice", { window_days: windowDays, limit }),
+  entitySources: (slug) => jsonFetch(`/entities/${slug}/sources`),
   entityImages: (slug, filters = {}) =>
     jsonFetch(`/entities/${slug}/images`, filters),
   search: (q) => jsonFetch("/entities/search", { q }),
