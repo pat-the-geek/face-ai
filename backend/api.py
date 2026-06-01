@@ -999,7 +999,7 @@ def list_entities(
     favorites_only: bool = False,
     sort_by: str = Query(
         "canonical",
-        description="`canonical` (filtre par 1re lettre du nom de famille) ou `first_name` (par prénom)",
+        description="`canonical` (filtre par 1re lettre du nom de famille), `first_name` (par prénom) ou `activity` (activité presse : `article_count` décroissant, puis nom de famille).",
     ),
     # CLAUDE.md prévoit 16k+ entités cibles. Sans pagination/virtualization
     # côté UI, on liste tout dans la sidebar. Plafond haut pour ne pas
@@ -1052,8 +1052,16 @@ def list_entities(
         count_base = count_base.where(cond)
 
     total = db.scalar(count_base) or 0
+    # Tri activité : les plus présents dans la presse (corpus) d'abord, nom de
+    # famille en 2e ordre pour un départage stable et lisible. Le tri se fait
+    # côté SQL (et non client) car la sidebar pagine (offset 0→200 puis le
+    # reste) : un tri client ne verrait que la 1re page au 1er paint.
+    if sort_by == "activity":
+        order = (Entity.article_count.desc(), Entity.name.asc())
+    else:
+        order = (Entity.name,)
     rows = (
-        db.execute(base.order_by(Entity.name).limit(limit).offset(offset))
+        db.execute(base.order_by(*order).limit(limit).offset(offset))
         .scalars()
         .all()
     )

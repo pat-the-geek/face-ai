@@ -4,10 +4,14 @@ import {
   useSortMode,
   getSortKey,
   getDisplayName,
+  __resetSortModeForTests,
 } from "./useSortMode";
 
 beforeEach(() => {
   localStorage.clear();
+  // Le store est module-level (partagé entre instances) : on relit l'état
+  // persistant entre chaque cas pour repartir propre.
+  __resetSortModeForTests();
 });
 
 describe("useSortMode hook", () => {
@@ -16,18 +20,35 @@ describe("useSortMode hook", () => {
     expect(result.current.mode).toBe("canonical");
   });
 
-  it("toggle bascule canonical ↔ first_name", () => {
+  it("toggle cycle canonical → first_name → activity → canonical", () => {
     const { result } = renderHook(() => useSortMode());
     act(() => result.current.toggle());
     expect(result.current.mode).toBe("first_name");
+    act(() => result.current.toggle());
+    expect(result.current.mode).toBe("activity");
     act(() => result.current.toggle());
     expect(result.current.mode).toBe("canonical");
   });
 
   it("setMode pose une valeur explicite", () => {
     const { result } = renderHook(() => useSortMode());
-    act(() => result.current.setMode("first_name"));
-    expect(result.current.mode).toBe("first_name");
+    act(() => result.current.setMode("activity"));
+    expect(result.current.mode).toBe("activity");
+  });
+
+  it("persiste 'activity' et le restaure", () => {
+    localStorage.setItem("face_ai_sort_mode", "activity");
+    __resetSortModeForTests();
+    const { result } = renderHook(() => useSortMode());
+    expect(result.current.mode).toBe("activity");
+  });
+
+  it("deux consommateurs partagent le même mode (store partagé)", () => {
+    const a = renderHook(() => useSortMode());
+    const b = renderHook(() => useSortMode());
+    act(() => a.result.current.setMode("activity"));
+    // L'instance B doit refléter le changement sans remount/reload.
+    expect(b.result.current.mode).toBe("activity");
   });
 
   it("persiste dans localStorage", () => {
@@ -42,6 +63,7 @@ describe("useSortMode hook", () => {
 
   it("valeurs invalides en localStorage → fallback canonical", () => {
     localStorage.setItem("face_ai_sort_mode", "garbage");
+    __resetSortModeForTests();
     const { result } = renderHook(() => useSortMode());
     expect(result.current.mode).toBe("canonical");
   });
@@ -58,6 +80,10 @@ describe("getSortKey", () => {
 
   it("mononymes : retourne le nom entier en mode first_name", () => {
     expect(getSortKey("Madonna", "first_name")).toBe("Madonna");
+  });
+
+  it("mode activity : retourne le nom canonique (tri backend)", () => {
+    expect(getSortKey("Chalamet, Timothée", "activity")).toBe("Chalamet, Timothée");
   });
 
   it("gère null/undefined sans crasher", () => {
@@ -79,6 +105,11 @@ describe("getDisplayName", () => {
 
   it("mononymes : inchangés", () => {
     expect(getDisplayName("Madonna", "first_name")).toBe("Madonna");
+  });
+
+  it("mode activity : affiche le nom canonique tel quel", () => {
+    expect(getDisplayName("Chalamet, Timothée", "activity"))
+      .toBe("Chalamet, Timothée");
   });
 
   it("gère null sans crasher", () => {

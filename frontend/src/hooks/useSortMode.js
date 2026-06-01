@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useSyncExternalStore } from "react";
 
 /**
  * Mode de tri/affichage des noms d'entités.
@@ -9,35 +9,93 @@ import { useEffect, useState } from "react";
  *   entier pour les mononymes), affichage "First Last". Pratique quand on
  *   cherche par prénom (Timothée, Beyoncé, Madonna). Limite : la barre
  *   alphabétique de l'AlphaNav reste indexée sur le nom de famille.
+ * - `"activity"` : tri sur l'activité presse (`article_count` décroissant,
+ *   puis nom de famille). Affichage canonique "Last, First". C'est un
+ *   classement, pas une navigation alphabétique : l'AlphaNav masque la
+ *   barre des lettres dans ce mode. Le tri est fait côté backend (cf.
+ *   `/entities?sort_by=activity`) pour rester correct avec la pagination.
  *
- * Persistance localStorage — la préférence survit aux rechargements et aux
- * rebuilds Vite, comme `useFontScale`.
+ * **Store partagé** (pas un simple `useState` par instance) : AlphaNav (le
+ * toggle) et EntityList (le consommateur) appellent tous deux `useSortMode`.
+ * Avec un état local, changer le mode dans AlphaNav ne se propageait pas à
+ * EntityList dans la même session — il fallait recharger la page pour que
+ * les deux relisent localStorage. On utilise donc un store module-level +
+ * `useSyncExternalStore` : toutes les instances partagent la même valeur et
+ * se re-rendent ensemble. Persistance localStorage (survit aux reloads /
+ * rebuilds Vite) + synchro cross-onglet via l'événement `storage`.
  */
 const KEY = "face_ai_sort_mode";
+const MODES = ["canonical", "first_name", "activity"];
 
-export function useSortMode() {
-  const [mode, setModeRaw] = useState(() => {
-    try {
-      const saved = localStorage.getItem(KEY);
-      return saved === "first_name" ? "first_name" : "canonical";
-    } catch {
-      return "canonical";
+function readStored() {
+  try {
+    const saved = localStorage.getItem(KEY);
+    return MODES.includes(saved) ? saved : "canonical";
+  } catch {
+    return "canonical";
+  }
+}
+
+let current = readStored();
+const listeners = new Set();
+
+function emit() {
+  listeners.forEach((l) => l());
+}
+
+function setModeGlobal(next) {
+  const value = MODES.includes(next) ? next : "canonical";
+  if (value === current) return;
+  current = value;
+  try {
+    localStorage.setItem(KEY, value);
+  } catch {
+    /* navigation privée, on ignore */
+  }
+  emit();
+}
+
+// Synchro cross-onglet : un changement de mode dans un autre onglet met à
+// jour ce store sans recharger.
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key !== KEY) return;
+    const value = readStored();
+    if (value !== current) {
+      current = value;
+      emit();
     }
   });
+}
 
-  useEffect(() => {
-    try {
-      localStorage.setItem(KEY, mode);
-    } catch {
-      /* navigation privée, on ignore */
-    }
-  }, [mode]);
+function subscribe(callback) {
+  listeners.add(callback);
+  return () => listeners.delete(callback);
+}
 
-  const setMode = (next) => setModeRaw(next);
+function getSnapshot() {
+  return current;
+}
+
+export function useSortMode() {
+  const mode = useSyncExternalStore(subscribe, getSnapshot, getSnapshot);
+
+  const setMode = (next) => setModeGlobal(next);
+  // Cycle : nom → prénom → activité → nom.
   const toggle = () =>
-    setModeRaw((m) => (m === "canonical" ? "first_name" : "canonical"));
+    setModeGlobal(MODES[(MODES.indexOf(current) + 1) % MODES.length]);
 
   return { mode, setMode, toggle };
+}
+
+/**
+ * Réinitialise le store depuis localStorage. Réservé aux tests : un store
+ * module-level survit entre les `it()` d'un même fichier, donc on relit
+ * l'état persistant (et on purge les abonnés) avant chaque cas.
+ */
+export function __resetSortModeForTests() {
+  current = readStored();
+  listeners.clear();
 }
 
 // Helpers de transformation. Exportés séparément pour qu'EntityList /
