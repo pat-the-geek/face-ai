@@ -448,6 +448,53 @@ def list_favorites(limit: int = 50) -> dict:
 
 
 @mcp.tool()
+def list_most_active(limit: int = 20) -> dict:
+    """Entités les plus actives dans la presse du corpus FACE.ai.
+
+    Classées par **activité presse** : `article_count` décroissant (nombre
+    d'articles WUDD du corpus mentionnant l'entité), nom de famille en 2e
+    ordre pour un départage stable. C'est le même tri que l'UI (toggle
+    « ↕ activité ») et l'API `/entities?sort_by=activity`.
+
+    À distinguer de `get_corpus_stats().top_entities`, qui classe par
+    **volume d'images** (`image_count`) — une métrique différente : une
+    entité peut avoir beaucoup d'images mais peu d'articles, et inversement.
+    Utiliser cet outil pour répondre à « qui revient le plus dans la presse ? ».
+
+    Les tombstones `not_person` sont exclus.
+
+    **Forme de réponse** : `{"count": N, "results": [{...}, ...]}`.
+    """
+    db = SessionLocal()
+    try:
+        not_person_filter = (Entity.wikidata_status.is_(None)) | (
+            Entity.wikidata_status != "not_person"
+        )
+        rows = db.execute(
+            select(Entity)
+            .where(not_person_filter)
+            .order_by(Entity.article_count.desc(), Entity.name.asc())
+            .limit(limit)
+        ).scalars().all()
+        results = [
+            {
+                "name": e.name,
+                "slug": e.slug,
+                "article_count": e.article_count,
+                "image_count": e.image_count,
+                "unique_image_count": e.unique_image_count or 0,
+                "diversity_score": e.diversity_score,
+                "is_favorite": bool(e.is_favorite),
+                "wikidata_qid": e.wikidata_qid,
+            }
+            for e in rows
+        ]
+        return {"count": len(results), "results": results}
+    finally:
+        db.close()
+
+
+@mcp.tool()
 def list_flagged_images(limit: int = 50) -> dict:
     """Images dont l'audit ArcFace a flaggé l'association comme suspecte (spec §5.5).
 

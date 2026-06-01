@@ -54,6 +54,7 @@ TESTS = [
         {"slug_a": "marcel-duchamp", "slug_b": "andre-breton"},
     ),
     ("C", "Recherche multi-mots", "search_entities", {"query": "elon musk"}),
+    ("D", "Top activité presse", "list_most_active", {"limit": 10}),
 ]
 
 
