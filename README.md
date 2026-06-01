@@ -26,7 +26,8 @@ intérêt légitime (RGPD art. 6.1.f, nLPD CH art. 31). Voir
 | Bloc | Stack |
 |---|---|
 | Backend API | FastAPI + SQLAlchemy + SQLite + Alembic |
-| Worker | Python (boucles `merge`, `wudd_sync`, `wudd_articles_batch`, `backup`) |
+| Worker | Python (boucles `merge`, `wudd_sync`, `wudd_articles_batch`, `backup`, `notify`) |
+| Veille (v030) | Part de présence, cartographie des sources, notifications Discord proactives (synthèse IA locale Ollama) |
 | Vision | MediaPipe FaceMesh (478 landmarks), OpenCV, InsightFace `buffalo_s` (ArcFace 512-dim) |
 | Déduplication | pHash DCT 64-bit (perceptual hash) |
 | Frontend | React 18 + Vite + Tailwind + TanStack Query |
@@ -172,6 +173,8 @@ Tools MCP exposés :
 | `compare_entities` | Cooccurrences éditoriales entre deux entités |
 | `get_media_timeline` | Histogramme temporel d'apparition |
 | `analyze_visibility_pattern` | Pré-mâché LLM (profil + timeline + titres) |
+| `get_share_of_voice` | Classement part de présence presse (fenêtre glissante + tendance) |
+| `get_entity_sources` | Ventilation des images par agence + domaine de presse |
 | `list_favorites`, `list_flagged_images`, `list_flagged_by_period` | Audit |
 | `find_duplicate_candidates` | Doublons pHash |
 
@@ -198,6 +201,10 @@ Choix non-évidents à conserver — détaillés dans
 - **Backup automatique** quotidien avec restore via UI Admin.
 - **Frontend sans-serif système** pour l'UI ; Cormorant/Garamond
   réservés à l'export JPG.
+- **Veille proactive (v030).** Notifications Discord (pic de visibilité,
+  photo flaggée, nouvelle personne, palier corpus), fiche synthèse par
+  IA locale Ollama. La synthèse diffusée hors LAN se limite aux **données
+  factuelles publiques** (attributs RGPD art. 9 exclus).
 
 ---
 

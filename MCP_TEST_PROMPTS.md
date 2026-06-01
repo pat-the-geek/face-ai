@@ -1,4 +1,4 @@
-# Tester le serveur MCP FACE.ai — 10 prompts
+# Tester le serveur MCP FACE.ai — 12 prompts
 
 > Une fois `claude mcp add --transport sse --scope local face-ai http://127.0.0.1:8011/sse`
 > exécuté et `/mcp` ouvert dans Claude Code, tu peux soumettre les prompts ci-dessous.
@@ -107,6 +107,28 @@ pour un papier de fond.
 ```
 **Outils attendus** : `analyze_visibility_pattern` (qui combine déjà profil + timeline + titres + instructions LLM), éventuellement complété par `get_corpus_stats` pour le contexte relatif.
 **Vérification** : Claude doit produire une analyse structurée avec **chiffres tirés du MCP** (pas de connaissance générale plaquée), nommer les sources dominantes, identifier les pics chronologiques et proposer des angles concrets (ex. "concentration de couverture sur 3 sources US, sous-représentation de la presse asiatique").
+
+---
+
+## Niveau veille (v030) — part de présence et sources
+
+### 11. Classement par part de présence
+```
+Quelles sont les 10 personnalités les plus présentes dans la presse 
+sur les 30 derniers jours dans FACE.ai, et lesquelles sont en hausse ?
+```
+**Outil attendu** : `get_share_of_voice` (window_days=30, limit=10)
+**Vérification** : classement par articles distincts, `share_pct` (part du total des mentions) et `trend` par entité (`up` / `down` / `flat` / `new`). Claude doit citer la fenêtre glissante, ne pas confondre `share_pct` avec un nombre brut d'articles, et lire la tendance vs la période précédente. Bonus : il peut faire varier `window_days` (ex. 7 vs 90) pour distinguer le pic récent de la présence de fond.
+
+---
+
+### 12. Cartographie des sources d'une entité
+```
+D'où viennent les images de Sam Altman dans FACE.ai — quelles agences 
+et quels titres de presse dominent ?
+```
+**Outil attendu** : `get_entity_sources`
+**Vérification** : ventilation par **agence** (`photo_agency` : Getty, Reuters, AFP…) et par **domaine de presse** (`source_domain`), avec les comptes. Plus complet que le top-3 de `get_behavioral_profile`. Claude doit distinguer agence (crédit photo) et domaine (média de publication), et signaler les images sans agence reconnue (NULL) sans inventer de crédit.
 
 ---
 

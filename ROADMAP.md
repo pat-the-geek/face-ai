@@ -1,10 +1,11 @@
 # FACE.ai — Roadmap
 
-> Snapshot au 12 mai 2026. Le projet est en **phase post-MVP stable**.
+> Snapshot au 1er juin 2026. Le projet est en **phase post-MVP stable**.
 > Pipeline opérationnel : 1067 entités, ~500 images, pull WUDD continu,
-> garde-fous en place (anti-fusion, P31, backup, restore). 355 tests
-> backend + 34 tests frontend (Vitest/RTL), 25 migrations Alembic. La
-> quasi-totalité du ROADMAP initial a été consommée.
+> garde-fous en place (anti-fusion, P31, backup, restore). 399 tests
+> backend + 34 tests frontend (Vitest/RTL), 29 migrations Alembic. La
+> quasi-totalité du ROADMAP initial a été consommée ; v030 ajoute une
+> couche **veille** (part de présence, sources, notifications Discord).
 
 ---
 
@@ -74,6 +75,31 @@ mémoire, par grandes catégories :
   au composite. Les 2 modes (auto 1/N et gradué) et l'export PNG
   existaient déjà.
 
+**Veille v030** (session 1er juin)
+- **Part de présence (share of voice)** : `presence.compute_share_of_voice`
+  — classement par articles distincts sur fenêtre glissante + part (%)
+  + tendance (`up`/`down`/`flat`/`new`) vs période précédente. API
+  `GET /corpus/share-of-voice`, page UI `/tendances` (`ShareOfVoice`),
+  tool MCP `get_share_of_voice`.
+- **Cartographie des sources par entité** : `presence.entity_sources`
+  — ventilation complète par agence (`photo_agency`) + domaine de
+  presse. API `GET /entities/{slug}/sources`, composant
+  `SourcesBreakdown`, tool MCP `get_entity_sources`.
+- **Flipbook chronologique** : toggle `⏱ Chrono` (`useFlipbook` tri par
+  date d'article, préserve l'image courante au basculement).
+- **Notifications Discord (veille proactive)** : `notifications.py` +
+  worker `notify_loop` (10 min). 4 scénarios (pic de visibilité, photo
+  inhabituelle flaggée ArcFace, nouvelle personne, palier corpus /50).
+  Fiche typographiée jointe (`synthesis_card.py`) : portrait + landmarks,
+  synthèse **IA locale Ollama** (`llm.py`, repli déterministe), repères
+  factuels, corpus & médias, heatmap. Dédup `worker_events` + palier
+  persistant `data/notify_state.json`. Endpoints `/admin/notify-test`,
+  `/admin/notify-run`. **Synthèse limitée aux données factuelles
+  publiques** (art. 9 exclu de la diffusion hors LAN).
+- **Infra** : `.dockerignore` (le contexte tarait `data/static/models`
+  + course sur le journal SQLite) ; env Discord/Ollama dans
+  `docker-compose.prod.yml`.
+
 ---
 
 ## 🎯 Restant — court terme
@@ -126,7 +152,9 @@ worker --since 30m` pour capturer la trace.
 
 Liste minimale, à reconsulter si le contexte du projet change :
 
-- Notification active WUDD (changelog / webhook) — dépend de WUDD côté amont
+- ~~Notification active~~ — **livré v030** côté FACE.ai (veille Discord
+  proactive sur le corpus). Reste éventuellement un canal *push amont*
+  depuis WUDD (changelog / webhook), qui dépend de WUDD côté amont.
 - Métriques exposées dans une vraie dashboard (Grafana consommant `/metrics`)
 - Bibliographie automatique par entité (liste des articles + citations)
 - Multi-utilisateurs (RGPD + auth — explicitement hors périmètre v1, cf. CLAUDE.md)

@@ -4,7 +4,7 @@
 > RGPD (UE) art. 30 (registre des activités de traitement) et nLPD
 > Suisse art. 12 (registre du responsable de traitement).
 >
-> **Version** : 1.0 — mai 2026
+> **Version** : 1.1 — juin 2026 (ajout flux sortant Discord v030, cf. §5)
 > **Responsable** : Patrick Ostertag (mono-utilisateur)
 > **Statut juridique** : intérêt légitime (RGPD art. 6.1.f / nLPD art. 31 al. 2 lettre c)
 >
@@ -170,6 +170,8 @@ personnalités publiques apparaissant nommément en presse.
 | Wikidata / Wikipedia / Wikimedia Commons | API publiques | Requête sortante : nom de l'entité, QID Wikidata. Pas de transfert de données personnelles **vers** ces services (lecture seulement) |
 | DuckDuckGo Images | API publique (gated `FACE_AI_ENABLE_DDG`) | Requête sortante : nom de l'entité. Idem, lecture seulement |
 | Tailscale (réseau privé) | Hébergement réseau | Transit chiffré, pas de stockage côté Tailscale |
+| Discord (webhook veille, v030) | Service de messagerie tiers (Discord Inc., US) | **Transfert sortant *actif* de données personnelles** : fiche de veille = portrait + nom + synthèse factuelle publique + signaux corpus. **Désactivable** (`FACE_AI_NOTIFY_ENABLED` / absence de `DISCORD_WEBHOOK_URL`). Périmètre **strictement limité aux données factuelles publiques** — attributs RGPD art. 9 (v027) **exclus** de toute diffusion hors LAN |
+| Ollama (synthèse IA, v030) | Modèle de langage **local** | Aucun transfert sortant : inférence sur l'infrastructure locale (Mac mini) |
 
 **Transferts hors UE/EEE** :
 - Suisse (CH) : pays bénéficiant d'une **décision d'adéquation** de la
@@ -181,6 +183,18 @@ personnalités publiques apparaissant nommément en presse.
   personnels du responsable transmis). Risque évalué bas : on consomme
   des APIs publiques en lecture seule, les serveurs ne reçoivent que
   des noms de personnes déjà rendues publiques.
+- **US (Discord, v030) — point d'attention nouveau** : contrairement aux
+  flux ci-dessus (lecture seule de sources publiques), la veille Discord
+  est le **premier flux où FACE.ai *pousse* activement une donnée
+  personnelle** (portrait + synthèse) hors du périmètre LAN/Tailscale qui
+  fait office de mesure de sécurité principale (§8). Atténuation retenue
+  par le responsable : (a) données diffusées **factuelles et déjà
+  publiques** uniquement, art. 9 explicitement exclu côté code
+  (`synthesis_card`/`notifications`) ; (b) destinataire = **canal privé**
+  du seul responsable, pas une diffusion publique ; (c) fonction
+  **désactivable** par configuration. Une **revue dédiée reste recommandée**
+  avant tout élargissement des destinataires (canal partagé, serveur tiers)
+  ou du contenu diffusé.
 
 ---
 
