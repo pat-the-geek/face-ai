@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link } from "react-router-dom";
 import { api } from "../api/client";
@@ -24,6 +24,7 @@ const SOURCE_PROVIDER_FILTERS = [
 export default function AuditPanel() {
   const queryClient = useQueryClient();
   const [providerFilter, setProviderFilter] = useState(null);
+  const [selected, setSelected] = useState(() => new Set());
   const { data, isLoading, error } = useQuery({
     queryKey: ["flagged", providerFilter || "all"],
     queryFn: () => api.flagged(providerFilter),
@@ -36,14 +37,44 @@ export default function AuditPanel() {
     queryClient.invalidateQueries({ queryKey: ["entityImages"] });
   };
 
+  const items = useMemo(() => data?.flagged || [], [data]);
+
+  // La sélection est par image ; on la purge des IDs qui ne sont plus
+  // dans la queue (changement de filtre, image traitée par ailleurs).
+  useEffect(() => {
+    setSelected((prev) => {
+      if (prev.size === 0) return prev;
+      const visible = new Set(items.map((i) => i.id));
+      const next = new Set([...prev].filter((id) => visible.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [items]);
+
+  const toggleSelect = (id) =>
+    setSelected((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+
+  const allSelected = items.length > 0 && selected.size === items.length;
+  const toggleSelectAll = () =>
+    setSelected(allSelected ? new Set() : new Set(items.map((i) => i.id)));
+
+  const batchConfirm = useMutation({
+    mutationFn: () => api.confirmImagesBatch([...selected]),
+    onSuccess: () => {
+      setSelected(new Set());
+      invalidate();
+    },
+  });
+
   if (isLoading) {
     return <div className="p-8 font-mono text-sm text-[var(--text-secondary)]">chargement…</div>;
   }
   if (error) {
     return <div className="p-8 font-mono text-sm text-accent">erreur : {error.message}</div>;
   }
-
-  const items = data?.flagged || [];
 
   return (
     <div className="h-full overflow-y-auto p-8 max-w-5xl mx-auto">
@@ -86,11 +117,57 @@ export default function AuditPanel() {
           ✓ aucune association suspecte
         </div>
       ) : (
-        <div className="space-y-4">
-          {items.map((img) => (
-            <FlaggedRow key={img.id} image={img} onChanged={invalidate} />
-          ))}
-        </div>
+        <>
+          {/* Barre de sélection batch — sticky pour rester accessible quand
+              le pipeline crache 30+ flagged et qu'on scrolle. */}
+          <div className="sticky top-0 z-10 -mx-1 mb-4 flex items-center gap-3 flex-wrap bg-bg-primary/95 backdrop-blur py-2 border-b divider">
+            <label className="flex items-center gap-2 text-xs font-mono text-[var(--text-secondary)] cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={allSelected}
+                onChange={toggleSelectAll}
+                className="accent-accent"
+              />
+              tout sélectionner
+            </label>
+            <span className="text-xs font-mono text-[var(--text-secondary)]">
+              {selected.size} / {items.length} sélectionnée{selected.size > 1 ? "s" : ""}
+            </span>
+            <div className="flex-1" />
+            {selected.size > 0 && (
+              <>
+                <button
+                  onClick={() => setSelected(new Set())}
+                  disabled={batchConfirm.isPending}
+                  className="px-2 py-1 text-xs font-mono uppercase tracking-wider text-[var(--text-secondary)] hover:text-[var(--text-primary)] disabled:opacity-50"
+                >
+                  effacer
+                </button>
+                <button
+                  onClick={() => batchConfirm.mutate()}
+                  disabled={batchConfirm.isPending}
+                  title="Valider l'attribution actuelle de toutes les images cochées (ArcFace s'est trompé)"
+                  className="px-3 py-1 border border-accent text-xs font-mono uppercase tracking-wider text-accent hover:bg-accent hover:text-white transition-colors disabled:opacity-50"
+                >
+                  {batchConfirm.isPending
+                    ? "traitement…"
+                    : `✓ Confirmer la sélection (${selected.size})`}
+                </button>
+              </>
+            )}
+          </div>
+          <div className="space-y-4">
+            {items.map((img) => (
+              <FlaggedRow
+                key={img.id}
+                image={img}
+                onChanged={invalidate}
+                selected={selected.has(img.id)}
+                onToggleSelect={() => toggleSelect(img.id)}
+              />
+            ))}
+          </div>
+        </>
       )}
 
       <section className="mt-12 pt-8 border-t divider">
@@ -108,7 +185,7 @@ export default function AuditPanel() {
   );
 }
 
-function FlaggedRow({ image, onChanged }) {
+function FlaggedRow({ image, onChanged, selected, onToggleSelect }) {
   const [reassigning, setReassigning] = useState(false);
   const [confirmingDelete, setConfirmingDelete] = useState(false);
 
@@ -131,7 +208,20 @@ function FlaggedRow({ image, onChanged }) {
     deleteMut.isPending || reassignMut.isPending || confirmMut.isPending;
 
   return (
-    <article className="border divider p-4 flex gap-4">
+    <article
+      className={`border p-4 flex gap-4 transition-colors ${
+        selected ? "border-accent bg-accent/5" : "divider"
+      }`}
+    >
+      <label className="shrink-0 flex items-start pt-1 cursor-pointer">
+        <input
+          type="checkbox"
+          checked={selected}
+          onChange={onToggleSelect}
+          className="accent-accent"
+          aria-label="Sélectionner pour confirmation groupée"
+        />
+      </label>
       <div className="shrink-0 w-32 h-32 bg-bg-secondary overflow-hidden">
         {image.aligned_url ? (
           <img

@@ -2,7 +2,7 @@
 
 > Snapshot au 1er juin 2026. Le projet est en **phase post-MVP stable**.
 > Pipeline opérationnel : 1067 entités, ~500 images, pull WUDD continu,
-> garde-fous en place (anti-fusion, P31, backup, restore). 399 tests
+> garde-fous en place (anti-fusion, P31, backup, restore). 404 tests
 > backend + 34 tests frontend (Vitest/RTL), 29 migrations Alembic. La
 > quasi-totalité du ROADMAP initial a été consommée ; v030 ajoute une
 > couche **veille** (part de présence, sources, notifications Discord).
@@ -102,13 +102,16 @@ mémoire, par grandes catégories :
 
 ---
 
-## 🎯 Restant — court terme
+## 🎯 Court terme — soldé (session 1er juin)
 
-| Item | Effort | Notes |
-|---|---|---|
-| LandmarkOverlay étendu aux **468 points MediaPipe** | ~1h | Actuel = 3 (yeux + nez). Migration `face_analysis.landmarks_blob` + extraction stockée par worker. |
-| Mode dark cohérent dans le Flipbook | ~30 min | Actuellement noir hardcodé, déconnecté de `useColorMode`. Polish UX. |
-| Drill batch dans `/audit` (« Confirmer toutes les flagged similaires ») | ~1h | Vitesse d'audit quand pipeline crache 30+ flagged d'un coup. |
+Audit de l'existant : les 3 items « court terme » étaient en fait
+déjà livrés ou faits dans cette session. Détail :
+
+| Item | État |
+|---|---|
+| LandmarkOverlay **468 points MediaPipe** | ✅ **Déjà livré v024**. Colonne `face_analysis.landmarks_blob`, extraction inline dans `process_image`, endpoint `GET /images/{id}/landmarks`, backfill `POST /admin/backfill-landmarks`, rendu mesh + FACE_OVAL dans `LandmarkOverlay`. Couverture **99,4 %** (1524/1533) ; les 9 restants ne re-détectent pas de mesh sur l'aligné (pose/qualité extrêmes) → fallback 3 points propre. *L'item ROADMAP était périmé.* |
+| Mode dark cohérent dans le Flipbook | ✅ **Déjà fait**. Le Flipbook a été migré aux tokens `--immersive-*` (`tokens.css`), plus de hex hardcodé dans le JSX. Palette **volontairement toujours sombre** (choix de design CLAUDE.md, pas un bug) → ne suit pas le toggle light/dark par conception. Docstring `useColorMode` corrigé. |
+| Drill batch dans `/audit` | ✅ **Livré cette session**. Sélection multi-images (cases + « tout sélectionner ») + barre sticky « ✓ Confirmer la sélection (N) ». Endpoint `POST /images/confirm-batch` (tolérant : `not_found`/`already_manual`, dédup, 1 commit). 5 tests. |
 
 ---
 
@@ -167,13 +170,15 @@ Le projet est dans un bon état pour **vivre 2-4 semaines en usage
 réel** avant nouveau chantier. Les frictions UX identifiées par
 l'usage valent plus qu'un nouveau item ajouté maintenant.
 
-Si tu veux quand même bouger :
+Les 3 items « court terme » historiques sont soldés (cf. section
+dédiée plus haut). Si tu veux quand même bouger, les prochains candidats
+sont dans **🌐 Améliorations UX** et les **extensions v030** :
 
-1. **LandmarkOverlay 468 pts** (~1h) — esthétique forensique conforme
-   à l'identité §1.5 du projet
-2. **Mode dark Flipbook + entity_cleanup auto** (~1h cumul) —
-   micro-finitions cohérence visuelle + hygiène DB
-3. **Drill batch dans /audit** (~1h) — quand les volumes de flagged
-   commencent à embêter l'audit manuel
+1. **entity_cleanup auto** (~30 min) — purge des `not_found` après N jours,
+   hygiène DB.
+2. **Digest périodique Discord** — résumé hebdo dérivé de `share_of_voice`
+   en complément des alertes unitaires v030.
+3. **Heatmap : superposer 2 timelines** (~2h) — visualiser une cooccurrence.
 
-Le reste peut attendre.
+Le reste peut attendre. La vraie priorité reste **laisser tourner la
+veille v030 quelques jours et ajuster les seuils selon le bruit réel.**

@@ -562,3 +562,83 @@ class TestConfirmImageEndpoint:
         audit_entity(e.id)
         db.refresh(img)
         assert img.association_status == "manual"
+
+
+class TestConfirmBatchEndpoint:
+    """POST /images/confirm-batch — validation groupée (drill batch /audit)."""
+
+    def _seed_n_flagged(self, db, n):
+        from database import Entity, Image
+
+        e = Entity(name="Batch, Test", slug="batch-test")
+        db.add(e)
+        db.flush()
+        imgs = []
+        for i in range(n):
+            img = Image(
+                entity_id=e.id,
+                source_url=f"https://example.com/{i}.jpg",
+                local_path=f"/tmp/inexistant-{i}.jpg",
+                association_status="flagged",
+                identity_match_score=0.7,
+            )
+            db.add(img)
+            imgs.append(img)
+        db.commit()
+        return e, imgs
+
+    def test_batch_confirms_selection(self, client, db):
+        e, imgs = self._seed_n_flagged(db, 3)
+        ids = [i.id for i in imgs]
+
+        r = client.post("/images/confirm-batch", json={"image_ids": ids})
+        assert r.status_code == 200
+        body = r.json()
+        assert sorted(body["confirmed"]) == sorted(ids)
+        assert body["already_manual"] == []
+        assert body["not_found"] == []
+        assert body["entity_slugs"] == ["batch-test"]
+
+        for img in imgs:
+            db.refresh(img)
+            assert img.association_status == "manual"
+
+    def test_batch_empties_flagged_queue(self, client, db):
+        _, imgs = self._seed_n_flagged(db, 4)
+        assert client.get("/flagged").json()["total"] == 4
+
+        client.post("/images/confirm-batch", json={"image_ids": [i.id for i in imgs]})
+        assert client.get("/flagged").json()["total"] == 0
+
+    def test_batch_tolerates_unknown_and_already_manual(self, client, db):
+        _, imgs = self._seed_n_flagged(db, 2)
+        imgs[0].association_status = "manual"
+        db.commit()
+
+        r = client.post(
+            "/images/confirm-batch",
+            json={"image_ids": [imgs[0].id, imgs[1].id, 999999]},
+        )
+        assert r.status_code == 200
+        body = r.json()
+        assert body["confirmed"] == [imgs[1].id]
+        assert body["already_manual"] == [imgs[0].id]
+        assert body["not_found"] == [999999]
+
+    def test_batch_dedupes_ids(self, client, db):
+        _, imgs = self._seed_n_flagged(db, 1)
+        r = client.post(
+            "/images/confirm-batch",
+            json={"image_ids": [imgs[0].id, imgs[0].id]},
+        )
+        assert r.json()["confirmed"] == [imgs[0].id]
+
+    def test_batch_empty_list_noop(self, client):
+        r = client.post("/images/confirm-batch", json={"image_ids": []})
+        assert r.status_code == 200
+        assert r.json() == {
+            "confirmed": [],
+            "already_manual": [],
+            "not_found": [],
+            "entity_slugs": [],
+        }

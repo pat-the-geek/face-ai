@@ -8,9 +8,10 @@ import { useCallback, useEffect, useState } from "react";
  * localStorage. Quand `mode='dark'`, on inhibe `useAmbientColor` (cf.
  * son param `enabled`) et on applique une palette neutre dark.
  *
- * Le Flipbook a son propre style sombre intégré (gradient radial sur
- * background, couleurs `#e8e4de`/`#5a5550` hardcodées) — il n'est pas
- * affecté par ce mode.
+ * Le Flipbook a sa propre palette immersive **toujours sombre** (tokens
+ * `--immersive-*` définis dans `tokens.css`, gradient radial ambient) —
+ * volontairement indépendante de ce toggle light/dark (cf. CLAUDE.md
+ * « Le Flipbook reste sombre hardcodé indépendamment »).
  */
 const KEY = "face_ai_color_mode";
 

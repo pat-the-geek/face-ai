@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Status: post-MVP mature
 
-Pipeline data complet, 1067 entités, ~500 images, 399 tests, 29 migrations. Tous les phases P0→P9 livrées + ROADMAP horizon court / moyen consommé + couche veille v030 (part de présence, sources, notifications Discord proactives). Voir [ROADMAP.md](ROADMAP.md) pour ce qui reste, [MIGRATION_POSTGRES.md](MIGRATION_POSTGRES.md) pour le plan de scale.
+Pipeline data complet, 1067 entités, ~500 images, 404 tests, 29 migrations. Tous les phases P0→P9 livrées + ROADMAP horizon court / moyen consommé + couche veille v030 (part de présence, sources, notifications Discord proactives). Voir [ROADMAP.md](ROADMAP.md) pour ce qui reste, [MIGRATION_POSTGRES.md](MIGRATION_POSTGRES.md) pour le plan de scale.
 
 **Source de vérité** : [FACE-ai-specification.md](FACE-ai-specification.md) reste la doc canonique des choix de conception. Quand le code diverge de la spec, c'est documenté ici (cf. sections plus bas — pHash vs FaceNet, ArcFace centroïde, purge §5.4 silencieuse, etc.).
 

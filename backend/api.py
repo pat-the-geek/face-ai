@@ -38,6 +38,8 @@ from schemas import (
     ArticleEntityRef,
     ArticleListItem,
     ArticleListResponse,
+    ConfirmBatchRequest,
+    ConfirmBatchResult,
     ImageConfirmResult,
     ImageDeleteResult,
     ImageHit,
@@ -394,6 +396,50 @@ def confirm_image(image_id: int, db: Session = Depends(get_db)):
         image_id=image_id,
         entity_slug=entity_slug,
         new_status="manual",
+    )
+
+
+@app.post("/images/confirm-batch", response_model=ConfirmBatchResult)
+def confirm_images_batch(
+    payload: ConfirmBatchRequest, db: Session = Depends(get_db)
+):
+    """Confirme en lot l'attribution d'une sélection d'images flagged (P9).
+
+    Même sémantique que `POST /images/{id}/confirm` appliquée à chaque ID :
+    bascule `flagged`/`human_flagged` → `manual` (l'audit ArcFace ne les
+    repassera plus). Tolérant : les IDs inconnus sont rapportés dans
+    `not_found` sans faire échouer le lot ; les images déjà `manual` sont
+    des noops rapportés dans `already_manual`. Un seul commit pour tout le
+    lot. Utile quand une composition multi-personnes (`face_count>1`)
+    produit une volée de flagged tous légitimement attribués.
+    """
+    confirmed: list[int] = []
+    already_manual: list[int] = []
+    not_found: list[int] = []
+    entity_slugs: set[str] = set()
+
+    # Dédup des IDs en préservant l'intention (un seul passage par image).
+    for image_id in dict.fromkeys(payload.image_ids):
+        img = db.get(Image, image_id)
+        if img is None:
+            not_found.append(image_id)
+            continue
+        if img.entity is not None:
+            entity_slugs.add(img.entity.slug)
+        if img.association_status == "manual":
+            already_manual.append(image_id)
+            continue
+        img.association_status = "manual"
+        confirmed.append(image_id)
+
+    if confirmed:
+        db.commit()
+
+    return ConfirmBatchResult(
+        confirmed=confirmed,
+        already_manual=already_manual,
+        not_found=not_found,
+        entity_slugs=sorted(entity_slugs),
     )
 
 

@@ -323,6 +323,29 @@ class ImageConfirmResult(BaseModel):
     new_status: str
 
 
+class ConfirmBatchRequest(BaseModel):
+    """Body de POST /images/confirm-batch — validation groupée (workflow P9).
+
+    Cas d'usage : le pipeline crache 30+ flagged d'un coup (ex. composition
+    multi-personnes, `face_count>1`) et l'opérateur veut confirmer une
+    sélection en un geste plutôt qu'une par une.
+    """
+    image_ids: list[int]
+
+
+class ConfirmBatchResult(BaseModel):
+    """Réponse au POST /images/confirm-batch.
+
+    `confirmed` = images effectivement passées en `manual` ce coup-ci ;
+    `already_manual` = déjà confirmées (noop idempotent) ; `not_found` =
+    IDs inconnus (ignorés silencieusement, pas d'erreur globale).
+    """
+    confirmed: list[int]
+    already_manual: list[int]
+    not_found: list[int]
+    entity_slugs: list[str]
+
+
 class FlaggedImage(BaseModel):
     """Image dans la queue d'audit. Couvre deux origines :
     - `flagged_by='arcface'` : audit ArcFace automatique (distance > 0.55)

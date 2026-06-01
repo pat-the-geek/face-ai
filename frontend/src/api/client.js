@@ -72,6 +72,8 @@ export const api = {
     jsonRequest(`/images/${id}`, "PATCH", { target_slug }),
   flagImage: (id) => jsonRequest(`/images/${id}/flag`, "POST"),
   confirmImage: (id) => jsonRequest(`/images/${id}/confirm`, "POST"),
+  confirmImagesBatch: (ids) =>
+    jsonRequest("/images/confirm-batch", "POST", { image_ids: ids }),
   imageLandmarks: (id) => jsonFetch(`/images/${id}/landmarks`),
   workerStatus: () => jsonFetch("/admin/worker-status"),
   backups: () => jsonFetch("/admin/backups"),
