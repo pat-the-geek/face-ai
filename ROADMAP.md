@@ -100,6 +100,27 @@ mémoire, par grandes catégories :
   + course sur le journal SQLite) ; env Discord/Ollama dans
   `docker-compose.prod.yml`.
 
+**v031** (session 2 juin) — bump **v1.0.0**.
+- **Cleanup entités orphelines** (manuel) : `entity_cleanup.cleanup_orphan_entities`
+  purge les entités `not_found` Wikidata + 0 image après `CLEANUP_ORPHAN_AFTER_DAYS`
+  (30 j). Endpoint `POST /admin/cleanup-orphans?dry_run=` + section AdminPanel
+  (prévisualiser → confirmer). Suppression complète (pas de tombstone).
+- **Digest Discord hebdomadaire** : `notifications.send_weekly_digest` /
+  `maybe_send_digest` (dérivé de `compute_share_of_voice`, synthèse Ollama
+  optionnelle), worker `digest_loop` (check horaire, créneau `NOTIFY_DIGEST_DAY/HOUR`,
+  dédup semaine ISO via `notify_state.json`). Endpoint `POST /admin/digest-test`
+  + bouton AdminPanel. Opt-in `FACE_AI_NOTIFY_DIGEST_ENABLED`.
+- **Superposition de 2 timelines** : `GET /entities/{slug}/timeline-compare?other=`
+  (2 séries jour + articles partagés fenêtrés). Composant `TimelineCompare`
+  (courbes mensuelles bi-couleur) sous l'EntityTimeline du panneau Infos & activité.
+- **Bibliographie par entité** : `bibliography.py` — `GET /entities/{slug}/articles`
+  (liste paginée) + `GET /entities/{slug}/export.md` (**dossier Markdown** : portrait
+  URL publique + bio factuelle **sans art. 9** + bibliographie avec citations).
+  Bouton `📚 Biblio` → modale plein écran + copier/télécharger le .md.
+- **Incident isolation tests** : un `import` métier top-level dans un test a wipe la
+  DB prod (restaurée depuis backup). Garde-fous ajoutés dans `conftest.py`
+  (env au niveau module + `_assert_test_db`). Cf. CLAUDE.md.
+
 ---
 
 ## 🎯 Court terme — soldé (session 1er juin)
@@ -145,9 +166,10 @@ worker --since 30m` pour capturer la trace.
 
 | Item | Effort | Valeur |
 |---|---|---|
-| `entity_cleanup` auto-purge des `not_found` après N jours | ~30 min | hygiène DB |
-| Heatmap : superposer 2 timelines pour visualiser cooccurrences | ~2h | exploration croisée |
+| ~~`entity_cleanup` purge des `not_found`~~ | — | ✅ **livré v031** (manuel) |
+| ~~Superposer 2 timelines pour visualiser cooccurrences~~ | — | ✅ **livré v031** (`TimelineCompare`) |
 | Sync clavier entre 2 Flipbook individuels en split-screen (∼ ROADMAP horizon moyen, en partie résolu par SplitFlipbookOverlay) | ~1h | confort split-screen |
+| Cleanup orphelines **auto** (loop worker) — actuellement manuel | ~30 min | si le bruit `not_found` s'accumule |
 
 ---
 
@@ -159,7 +181,7 @@ Liste minimale, à reconsulter si le contexte du projet change :
   proactive sur le corpus). Reste éventuellement un canal *push amont*
   depuis WUDD (changelog / webhook), qui dépend de WUDD côté amont.
 - Métriques exposées dans une vraie dashboard (Grafana consommant `/metrics`)
-- Bibliographie automatique par entité (liste des articles + citations)
+- ~~Bibliographie automatique par entité (liste des articles + citations)~~ — **livré v031** (bouton `📚 Biblio` + export Markdown)
 - Multi-utilisateurs (RGPD + auth — explicitement hors périmètre v1, cf. CLAUDE.md)
 
 ---

@@ -66,6 +66,16 @@ COOCCURRENCE_MIN_SHARED = int(os.getenv("COOCCURRENCE_MIN_SHARED", "2"))
 # fenêtre précédente pour la tendance.
 SHARE_OF_VOICE_WINDOW_DAYS = int(os.getenv("SHARE_OF_VOICE_WINDOW_DAYS", "30"))
 
+# Cleanup des entités orphelines (v031). Une entité `wikidata_status='not_found'`
+# (aucun QID Wikidata) ET sans aucune image après ce délai est du poids mort :
+# soit un faux PERSON du NER WUDD (concept, lieu, entreprise non reconnu par le
+# garde-fou P31 car même pas trouvé sur Wikidata), soit une personne trop
+# obscure sans portrait — inutilisable dans une galerie de visages. On ne purge
+# QUE manuellement (endpoint /admin, pas de loop worker) : opération
+# destructive, on veut un humain dans la boucle. Délai mesuré depuis
+# `wikidata_synced_at` (instant où le not_found a été confirmé), pas first_seen.
+CLEANUP_ORPHAN_AFTER_DAYS = int(os.getenv("CLEANUP_ORPHAN_AFTER_DAYS", "30"))
+
 # ── Notifications Discord (veille proactive, v030) ──────────────────────
 # Webhook réutilisé de WUDD.ai (sortie réseau assumée, cf. CLAUDE.md §1.5).
 # Vide → notifications désactivées (le worker n'émet rien). On ne logge
@@ -103,6 +113,22 @@ NOTIFY_NEW_PERSON_MAX_PER_CYCLE = int(
 # personnalités gérées franchit un bloc (50 par défaut → prochain à 3050).
 # Dédup persistante via un fichier d'état (worker_events est purgé à 7 j).
 NOTIFY_MILESTONE_BLOCK = int(os.getenv("NOTIFY_MILESTONE_BLOCK", "50"))
+
+# ── Digest hebdomadaire (v031) ──────────────────────────────────────────
+# Synthèse récurrente dérivée du share of voice (qui domine la presse cette
+# semaine, tendances, nouveaux entrants), en complément des alertes unitaires.
+# Désactivé par défaut (les alertes A–D suffisent à beaucoup d'usages) ;
+# activer explicitement. Requiert aussi un webhook (cf. NOTIFY_ENABLED).
+# Jour : `weekday()` Python (0 = lundi). Heure : UTC. Le worker vérifie à
+# chaque heure et n'émet qu'une fois par semaine ISO (dédup notify_state.json).
+NOTIFY_DIGEST_ENABLED = (
+    os.getenv("FACE_AI_NOTIFY_DIGEST_ENABLED", "false").lower() == "true"
+    and bool(DISCORD_WEBHOOK_URL)
+)
+NOTIFY_DIGEST_DAY = int(os.getenv("NOTIFY_DIGEST_DAY", "1"))  # mardi par défaut
+NOTIFY_DIGEST_HOUR = int(os.getenv("NOTIFY_DIGEST_HOUR", "8"))  # 08:00 UTC
+NOTIFY_DIGEST_WINDOW_DAYS = int(os.getenv("NOTIFY_DIGEST_WINDOW_DAYS", "7"))
+NOTIFY_DIGEST_TOP = int(os.getenv("NOTIFY_DIGEST_TOP", "10"))
 
 # ── Synthèse par IA locale Ollama (v030) ────────────────────────────────
 # La synthèse jointe aux notifications est rédigée par un LLM local (Ollama,

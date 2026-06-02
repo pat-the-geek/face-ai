@@ -643,6 +643,96 @@ def _notify_milestones(db) -> int:
     return 0
 
 
+# ── Digest hebdomadaire (v031) ──────────────────────────────────────────
+
+
+_TREND_SYMBOL = {"up": "▲", "down": "▼", "flat": "·", "new": "✦"}
+
+
+def _digest_text() -> str | None:
+    """Corps Markdown du digest hebdo, dérivé du share of voice.
+
+    Données **exclusivement corpus** (mentions presse) — aucun attribut
+    sensible art. 9. Retourne None s'il n'y a aucune mention sur la fenêtre."""
+    from presence import compute_share_of_voice
+
+    sov = compute_share_of_voice(
+        window_days=config.NOTIFY_DIGEST_WINDOW_DAYS, limit=config.NOTIFY_DIGEST_TOP
+    )
+    entities = sov.get("entities") or []
+    if not entities or sov.get("total_mentions", 0) == 0:
+        return None
+
+    lines = [
+        f"📊 **Veille hebdo FACE.ai** — {config.NOTIFY_DIGEST_WINDOW_DAYS} derniers jours",
+        f"_{sov['total_mentions']} mentions presse · {sov['from']} → {sov['to']}_",
+        "",
+    ]
+
+    # Synthèse éditoriale optionnelle (Ollama, à partir des seuls chiffres).
+    movers = [
+        f"{e['name']} : {e['share_pct']}% ({e['articles']} art., {e['trend']})"
+        for e in entities[:5]
+    ]
+    synthesis = _llm_synthesis(
+        "Veille presse hebdomadaire du corpus", movers
+    )
+    if synthesis:
+        lines += [synthesis, ""]
+
+    lines.append("**Top présence :**")
+    for i, e in enumerate(entities, 1):
+        sym = _TREND_SYMBOL.get(e["trend"], "·")
+        tag = "  🆕" if e["trend"] == "new" else ""
+        lines.append(
+            f"{i:>2}. {sym} {e['name']} — {e['share_pct']}% ({e['articles']} art.){tag}"
+        )
+
+    newcomers = [e["name"] for e in entities if e["trend"] == "new"]
+    if newcomers:
+        lines += ["", "🆕 Nouveaux entrants : " + " · ".join(newcomers[:6])]
+
+    return "\n".join(lines)
+
+
+def send_weekly_digest() -> bool:
+    """Envoie le digest hebdo (texte, sans image). Ne lève jamais."""
+    text = _digest_text()
+    if text is None:
+        return send_discord("📊 Veille hebdo FACE.ai — aucune mention cette semaine.")
+    return send_discord(text)
+
+
+def _iso_week_key() -> str:
+    iso = date.today().isocalendar()
+    return f"{iso[0]}-W{iso[1]:02d}"
+
+
+def maybe_send_digest(*, force: bool = False) -> dict:
+    """Émet le digest si on est dans la fenêtre jour/heure configurée et qu'il
+    n'a pas déjà été envoyé cette semaine ISO. `force=True` court-circuite la
+    planification (endpoint de test). Dédup persistante via notify_state.json
+    (clé `last_digest_week`) — survit à la rotation 7 j de worker_events."""
+    if not (config.NOTIFY_DIGEST_ENABLED or force):
+        return {"skipped": "disabled"}
+
+    week = _iso_week_key()
+    if not force:
+        now = datetime.utcnow()
+        if now.weekday() != config.NOTIFY_DIGEST_DAY or now.hour != config.NOTIFY_DIGEST_HOUR:
+            return {"skipped": "not_scheduled"}
+        state = _load_state()
+        if state.get("last_digest_week") == week:
+            return {"skipped": "already_sent", "week": week}
+
+    sent = send_weekly_digest()
+    if sent and not force:
+        state = _load_state()
+        state["last_digest_week"] = week
+        _save_state(state)
+    return {"sent": sent, "week": week, "forced": force}
+
+
 # ── Cycle worker + test manuel ──────────────────────────────────────────
 
 

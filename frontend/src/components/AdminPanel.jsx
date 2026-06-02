@@ -23,6 +23,8 @@ export default function AdminPanel() {
         <WorkerSection />
         <MergeConflictsSection />
         <RecheckSection />
+        <CleanupOrphansSection />
+        <NotificationsSection />
         <BackupsSection />
         <WuddSection />
       </div>
@@ -306,6 +308,142 @@ function RecheckSection() {
               ))}
             </ul>
           )}
+        </div>
+      )}
+    </Section>
+  );
+}
+
+function NotificationsSection() {
+  const [msg, setMsg] = useState(null);
+
+  const notifyMut = useMutation({
+    mutationFn: api.notifyTest,
+    onSuccess: (d) => setMsg(d.sent ? "✓ notification envoyée" : "notification non envoyée"),
+    onError: (e) => setMsg(`erreur : ${e.message}`),
+  });
+  const digestMut = useMutation({
+    mutationFn: api.digestTest,
+    onSuccess: (d) =>
+      setMsg(
+        d.sent ? `✓ digest envoyé (semaine ${d.week})` : "digest non envoyé (aucune donnée ?)",
+      ),
+    onError: (e) => setMsg(`erreur : ${e.message}`),
+  });
+
+  return (
+    <Section
+      title="Notifications Discord"
+      subtitle="Veille proactive (alertes unitaires) et digest hebdomadaire (synthèse share of voice). Boutons de test manuel — nécessitent un webhook configuré côté serveur."
+    >
+      <div className="flex items-center gap-3 flex-wrap mb-3">
+        <button
+          onClick={() => notifyMut.mutate()}
+          disabled={notifyMut.isPending}
+          className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider hover:border-accent hover:text-accent transition-colors disabled:opacity-50"
+        >
+          {notifyMut.isPending ? "envoi…" : "🔔 Tester notif"}
+        </button>
+        <button
+          onClick={() => digestMut.mutate()}
+          disabled={digestMut.isPending}
+          className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider hover:border-accent hover:text-accent transition-colors disabled:opacity-50"
+        >
+          {digestMut.isPending ? "envoi…" : "📊 Tester digest"}
+        </button>
+        {msg && (
+          <span className="text-xs font-mono text-[var(--text-secondary)]">{msg}</span>
+        )}
+      </div>
+    </Section>
+  );
+}
+
+function CleanupOrphansSection() {
+  const queryClient = useQueryClient();
+  // Flux en 2 temps : preview (dry-run) liste les candidates, puis purge
+  // confirmée. Opération destructive → jamais de suppression au 1er clic.
+  const [preview, setPreview] = useState(null);
+  const [done, setDone] = useState(null);
+
+  const previewMut = useMutation({
+    mutationFn: () => api.cleanupOrphans(true),
+    onSuccess: (data) => {
+      setPreview(data);
+      setDone(null);
+    },
+  });
+  const purgeMut = useMutation({
+    mutationFn: () => api.cleanupOrphans(false),
+    onSuccess: (data) => {
+      setDone(data);
+      setPreview(null);
+      queryClient.invalidateQueries({ queryKey: ["worker-status"] });
+      queryClient.invalidateQueries({ queryKey: ["letters"] });
+      queryClient.invalidateQueries({ queryKey: ["entities"] });
+      queryClient.invalidateQueries({ queryKey: ["entities-first"] });
+      queryClient.invalidateQueries({ queryKey: ["entities-rest"] });
+    },
+  });
+
+  return (
+    <Section
+      title="Entités orphelines"
+      subtitle="Purge les entités introuvables sur Wikidata (not_found) ET sans aucun portrait après le délai configuré. Poids mort : faux PERSON du NER WUDD, ou personnes trop obscures sans image. Manuel et destructif — prévisualiser d'abord."
+    >
+      <div className="flex items-center gap-3 flex-wrap mb-3">
+        <button
+          onClick={() => previewMut.mutate()}
+          disabled={previewMut.isPending}
+          className="px-3 py-1 border divider text-xs font-mono uppercase tracking-wider hover:border-accent hover:text-accent transition-colors disabled:opacity-50"
+        >
+          {previewMut.isPending ? "analyse…" : "⌕ Prévisualiser"}
+        </button>
+        {preview && preview.count > 0 && (
+          <button
+            onClick={() => purgeMut.mutate()}
+            disabled={purgeMut.isPending}
+            className="px-3 py-1 border border-accent text-xs font-mono uppercase tracking-wider text-accent hover:bg-accent/10 transition-colors disabled:opacity-50 animate-pulse"
+          >
+            {purgeMut.isPending
+              ? "suppression…"
+              : `⚠ Confirmer la purge de ${preview.count}`}
+          </button>
+        )}
+        <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-secondary)]">
+          seuil défaut {preview?.days ?? done?.days ?? 30} j
+        </span>
+      </div>
+
+      {preview && (
+        <div className="border divider px-3 py-2 text-xs font-mono">
+          <div className="text-[var(--text-secondary)] uppercase tracking-wider mb-1">
+            prévisualisation · {preview.count} candidate(s)
+          </div>
+          {preview.count === 0 ? (
+            <div className="text-[var(--text-secondary)]">
+              aucune entité orpheline — corpus propre
+            </div>
+          ) : (
+            <ul className="mt-1 space-y-0.5 max-h-48 overflow-y-auto">
+              {preview.entities.map((e) => (
+                <li key={e.slug} className="text-[var(--text-secondary)]">
+                  · {e.name}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+
+      {done && (
+        <div className="border divider px-3 py-2 text-xs font-mono">
+          <div className="text-accent uppercase tracking-wider mb-1">
+            {done.count} entité(s) supprimée(s)
+          </div>
+          <div className="text-[var(--text-secondary)]">
+            {done.orphan_articles} article(s) orphelin(s) restant(s) (non supprimés)
+          </div>
         </div>
       )}
     </Section>

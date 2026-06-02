@@ -7,7 +7,7 @@ enrich → not_person. Ici on cible les helpers de re-check rétro-actif
 """
 from __future__ import annotations
 
-from datetime import date, datetime
+from datetime import date, datetime, timedelta
 
 
 def _seed_entity(db, slug, name, status="done", qid="Q42", **kw):
@@ -19,6 +19,29 @@ def _seed_entity(db, slug, name, status="done", qid="Q42", **kw):
     db.add(e)
     db.flush()
     return e
+
+
+def _add_image(db, entity, article_url="https://ex.com/img-art"):
+    from database import Article, ArticleEntity, Image
+
+    art = db.scalar(
+        __import__("sqlalchemy").select(Article).where(Article.url == article_url)
+    )
+    if art is None:
+        art = Article(url=article_url, title="art", published_at=date(2024, 1, 1))
+        db.add(art)
+        db.flush()
+    db.add(ArticleEntity(article_id=art.id, entity_id=entity.id))
+    img = Image(
+        article_id=art.id,
+        entity_id=entity.id,
+        source_url="https://ex.com/p.jpg",
+        scrape_status="downloaded",
+        analysis_status="done",
+    )
+    db.add(img)
+    db.flush()
+    return img
 
 
 class TestFindDoneEntitiesToRecheck:
@@ -145,6 +168,124 @@ class TestPurgeAllNonPersons:
         # Le second a quand même été traité
         assert summary["checked"] == 1
         assert summary["still_person"] == 1
+
+
+class TestCleanupOrphanEntities:
+    def _old(self):
+        return datetime.utcnow() - timedelta(days=60)
+
+    def test_finds_not_found_without_images_old(self, db):
+        from entity_cleanup import find_orphan_entities
+
+        _seed_entity(
+            db, "orphan", "Orphan, X", status="not_found", qid=None,
+            wikidata_synced_at=self._old(),
+        )
+        db.commit()
+        orphans = find_orphan_entities(days=30)
+        assert [o.slug for o in orphans] == ["orphan"]
+
+    def test_excludes_entity_with_images(self, db):
+        from entity_cleanup import find_orphan_entities
+
+        e = _seed_entity(
+            db, "has-photo", "Photo, Has", status="not_found", qid=None,
+            wikidata_synced_at=self._old(),
+        )
+        _add_image(db, e)
+        db.commit()
+        # not_found + portrait = vraie personne absente de Wikidata → on garde
+        assert find_orphan_entities(days=30) == []
+
+    def test_null_entity_id_image_does_not_hide_orphans(self, db):
+        """Régression : une image à entity_id NULL ne doit pas masquer les
+        orphelins (piège SQL `NOT IN (…, NULL)`). Bug attrapé en live 2026-06-02."""
+        from database import Article, Image
+        from entity_cleanup import find_orphan_entities
+
+        _seed_entity(
+            db, "orphan", "Orphan, X", status="not_found", qid=None,
+            wikidata_synced_at=self._old(),
+        )
+        # Image orpheline non associée (entity_id NULL) — cas réel (ingestion
+        # en attente d'association).
+        art = Article(url="https://ex.com/n", title="n", published_at=date(2024, 1, 1))
+        db.add(art)
+        db.flush()
+        db.add(Image(article_id=art.id, entity_id=None, source_url="https://x/p.jpg",
+                     scrape_status="downloaded", analysis_status="pending"))
+        db.commit()
+        assert [o.slug for o in find_orphan_entities(days=30)] == ["orphan"]
+
+    def test_excludes_recent_not_found(self, db):
+        from entity_cleanup import find_orphan_entities
+
+        _seed_entity(
+            db, "recent", "Recent, X", status="not_found", qid=None,
+            wikidata_synced_at=datetime.utcnow() - timedelta(days=2),
+        )
+        db.commit()
+        assert find_orphan_entities(days=30) == []
+
+    def test_excludes_done_and_pending(self, db):
+        from entity_cleanup import find_orphan_entities
+
+        _seed_entity(db, "done", "Done, X", status="done", wikidata_synced_at=self._old())
+        _seed_entity(db, "pending", "Pending, X", status="pending", qid=None)
+        db.commit()
+        assert find_orphan_entities(days=30) == []
+
+    def test_null_synced_at_treated_as_old(self, db):
+        from entity_cleanup import find_orphan_entities
+
+        _seed_entity(
+            db, "legacy", "Legacy, X", status="not_found", qid=None,
+            wikidata_synced_at=None,
+        )
+        db.commit()
+        assert [o.slug for o in find_orphan_entities(days=30)] == ["legacy"]
+
+    def test_dry_run_lists_without_deleting(self, db):
+        from database import Entity
+        from entity_cleanup import cleanup_orphan_entities
+
+        _seed_entity(
+            db, "orphan", "Orphan, X", status="not_found", qid=None,
+            wikidata_synced_at=self._old(),
+        )
+        db.commit()
+        res = cleanup_orphan_entities(days=30, dry_run=True)
+        assert res["dry_run"] is True
+        assert res["count"] == 1
+        assert res["entities"][0]["slug"] == "orphan"
+        db.expire_all()
+        assert db.scalar(__import__("sqlalchemy").select(Entity).where(Entity.slug == "orphan")) is not None
+
+    def test_cleanup_deletes_row_and_links(self, db):
+        from database import ArticleEntity, Entity, EntityAlias
+        from entity_cleanup import cleanup_orphan_entities
+
+        e = _seed_entity(
+            db, "orphan", "Orphan, X", status="not_found", qid=None,
+            wikidata_synced_at=self._old(),
+        )
+        db.add(EntityAlias(entity_id=e.id, alias="Orphan"))
+        # Lien article SANS image (donc reste orphelin) — doit être supprimé
+        from database import Article
+        art = Article(url="https://ex.com/o", title="o", published_at=date(2024, 1, 1))
+        db.add(art)
+        db.flush()
+        db.add(ArticleEntity(article_id=art.id, entity_id=e.id))
+        db.commit()
+        eid = e.id
+
+        res = cleanup_orphan_entities(days=30, dry_run=False)
+        assert res["count"] == 1
+        db.expire_all()
+        assert db.get(Entity, eid) is None
+        from sqlalchemy import select
+        assert db.scalar(select(ArticleEntity).where(ArticleEntity.entity_id == eid)) is None
+        assert db.scalar(select(EntityAlias).where(EntityAlias.entity_id == eid)) is None
 
 
 class TestFindOrphanArticles:

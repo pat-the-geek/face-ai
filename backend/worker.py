@@ -21,14 +21,21 @@ import time
 from sqlalchemy import select
 
 from database import Entity, SessionLocal
-from config import NOTIFY_ENABLED, NOTIFY_POLL_SECONDS, WUDD_BATCH_CYCLE_MINUTES
+from config import (
+    NOTIFY_DIGEST_DAY,
+    NOTIFY_DIGEST_ENABLED,
+    NOTIFY_DIGEST_HOUR,
+    NOTIFY_ENABLED,
+    NOTIFY_POLL_SECONDS,
+    WUDD_BATCH_CYCLE_MINUTES,
+)
 from backup import make_backup
 from dedup import compute_missing_embeddings, dedup_all_entities
 from entity_merge import auto_merge_by_qid
 from face_processor import process_pending
 from face_attributes import compute_missing_attributes
 from identity_audit import audit_all_entities, compute_missing_identities
-from notifications import run_notify_cycle
+from notifications import maybe_send_digest, run_notify_cycle
 from wikidata import enrich_entity
 from worker_metrics import record_error, record_event, record_success
 from wudd_articles_batch import run_batch as wudd_articles_run_batch
@@ -300,6 +307,32 @@ def notify_loop() -> None:
         time.sleep(NOTIFY_POLL_SECONDS)
 
 
+# Digest hebdo : vérification horaire, n'émet qu'à l'heure/jour configurés
+# (dédup par semaine ISO côté notifications.maybe_send_digest).
+DIGEST_POLL_SECONDS = 3600
+
+
+def _run_digest_cycle() -> dict:
+    try:
+        summary = maybe_send_digest()
+        if summary.get("sent"):
+            log.info("digest hebdo : %s", summary)
+            record_success("digest", summary)
+        return summary
+    except Exception:
+        log.exception("digest erreur")
+        record_error("digest")
+        return {}
+
+
+def digest_loop() -> None:
+    """Digest hebdomadaire Discord (v031) — synthèse share of voice. Vérifie
+    chaque heure, n'émet qu'une fois par semaine au créneau configuré."""
+    while True:
+        _run_digest_cycle()
+        time.sleep(DIGEST_POLL_SECONDS)
+
+
 def main() -> None:
     logging.basicConfig(
         level=logging.INFO,
@@ -339,6 +372,12 @@ def main() -> None:
         log.info("notifications Discord activées (poll %ss)", NOTIFY_POLL_SECONDS)
     else:
         log.info("notifications Discord désactivées (pas de webhook)")
+    # Digest hebdo : thread séparé, activé indépendamment des alertes unitaires.
+    if NOTIFY_DIGEST_ENABLED:
+        threads.append(
+            threading.Thread(target=digest_loop, daemon=True, name="digest")
+        )
+        log.info("digest hebdo activé (jour %s, %sh UTC)", NOTIFY_DIGEST_DAY, NOTIFY_DIGEST_HOUR)
     for t in threads:
         t.start()
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import BehavioralProfile from "./BehavioralProfile";
+import BibliographyButton from "./BibliographyButton";
 import CollectButton from "./CollectButton";
 import CooccurrencePartners from "./CooccurrencePartners";
 import EntityTimeline from "./EntityTimeline";
@@ -10,6 +11,7 @@ import FavoriteToggle from "./FavoriteToggle";
 import GaltonComposite from "./GaltonComposite";
 import PoseFilter from "./PoseFilter";
 import SourcesBreakdown from "./SourcesBreakdown";
+import TimelineCompare from "./TimelineCompare";
 
 const FR_DATE = new Intl.DateTimeFormat("fr-FR", {
   day: "numeric",
@@ -171,6 +173,7 @@ export default function GalleryHeader({
             selectedDate={selectedDate}
             onSelectDate={onSelectDate}
           />
+          <TimelineCompare slug={entity.slug} />
           {hasBio && (
             <div className="space-y-1.5 text-sm">
               <BioRow label="Naissance">{birthLine}</BioRow>
@@ -261,6 +264,7 @@ export default function GalleryHeader({
           >
             ⤓ Export JPG
           </a>
+          <BibliographyButton slug={entity.slug} />
           <CollectButton slug={entity.slug} />
           <DdgPicker slug={entity.slug} />
           <DeleteEntityButton entity={entity} />

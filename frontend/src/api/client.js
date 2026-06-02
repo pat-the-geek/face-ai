@@ -58,6 +58,10 @@ export const api = {
   shareOfVoice: ({ windowDays = 30, limit = 20 } = {}) =>
     jsonFetch("/corpus/share-of-voice", { window_days: windowDays, limit }),
   entitySources: (slug) => jsonFetch(`/entities/${slug}/sources`),
+  entityArticles: (slug, { limit = 50, offset = 0 } = {}) =>
+    jsonFetch(`/entities/${slug}/articles`, { limit, offset }),
+  timelineCompare: (slug, other) =>
+    jsonFetch(`/entities/${slug}/timeline-compare`, { other }),
   entityImages: (slug, filters = {}) =>
     jsonFetch(`/entities/${slug}/images`, filters),
   search: (q) => jsonFetch("/entities/search", { q }),
@@ -87,6 +91,10 @@ export const api = {
   wuddStatus: () => jsonFetch("/admin/wudd-status"),
   recheckNotPerson: (limit = 50) =>
     jsonRequest(`/admin/recheck-not-person?limit=${limit}`, "POST"),
+  cleanupOrphans: (dryRun = true) =>
+    jsonRequest(`/admin/cleanup-orphans?dry_run=${dryRun}`, "POST"),
+  notifyTest: () => jsonRequest("/admin/notify-test", "POST"),
+  digestTest: () => jsonRequest("/admin/digest-test", "POST"),
   collectEntity: (slug, limit = 200) =>
     jsonRequest(`/entities/${slug}/collect?limit=${limit}`, "POST"),
   searchDdg: (slug, limit = 20) =>

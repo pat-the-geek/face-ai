@@ -109,7 +109,7 @@ export default function App() {
           >
             Admin
           </Link>
-          <span className="text-[10px] text-[var(--text-secondary)]">v0.0.1</span>
+          <span className="text-[10px] text-[var(--text-secondary)]">v1.0.0</span>
         </div>
       </header>
 

@@ -55,7 +55,7 @@ from schemas import (
 )
 from scraper import EntityInput, ScrapeInput, process_article
 
-app = FastAPI(title="FACE.ai", version="0.0.1")
+app = FastAPI(title="FACE.ai", version="1.0.0")
 
 
 # Statut qui marque les entités hors périmètre PERSON (faux PERSON WUDD
@@ -718,6 +718,27 @@ def admin_recheck_not_person(
     from entity_cleanup import purge_all_non_persons
 
     return purge_all_non_persons(limit=limit)
+
+
+@app.post("/admin/cleanup-orphans")
+def admin_cleanup_orphans(
+    days: int | None = Query(
+        None, ge=0, description="Seuil en jours (défaut config.CLEANUP_ORPHAN_AFTER_DAYS)"
+    ),
+    dry_run: bool = Query(
+        True, description="true (défaut) = liste les candidates sans rien supprimer"
+    ),
+):
+    """Purge des entités orphelines : `not_found` Wikidata + 0 image après N jours.
+
+    Poids mort typique : faux PERSON du NER WUDD introuvables sur Wikidata,
+    ou personnes trop obscures sans aucun portrait — inutilisables dans une
+    galerie de visages. Opération **destructive et manuelle** (pas de loop
+    worker) : `dry_run=true` par défaut pour valider la liste avant suppression.
+    """
+    from entity_cleanup import cleanup_orphan_entities
+
+    return cleanup_orphan_entities(days=days, dry_run=dry_run)
 
 
 @app.get("/admin/centroid-merge-candidates")
@@ -1930,6 +1951,52 @@ def get_entity_sources(slug: str, db: Session = Depends(get_db)):
     return {"slug": slug, "name": entity.name, **entity_sources(entity.id)}
 
 
+@app.get("/entities/{slug}/articles")
+def get_entity_articles(
+    slug: str,
+    limit: int = Query(50, ge=1, le=500),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+):
+    """Bibliographie d'une entité : articles la mentionnant, récents d'abord.
+
+    `images` par article = nombre d'images de **cette** entité (pas le total
+    de l'article). Sert la modale « 📚 Bibliographie » de la fiche."""
+    from bibliography import entity_articles
+
+    entity = db.scalar(select(Entity).where(Entity.slug == slug))
+    if entity is None or entity.wikidata_status == NOT_PERSON_STATUS:
+        raise HTTPException(status_code=404, detail="entity not found")
+    return {
+        "slug": slug,
+        "name": entity.name,
+        **entity_articles(entity.id, limit=limit, offset=offset),
+    }
+
+
+@app.get("/entities/{slug}/export.md", response_class=PlainTextResponse)
+def export_entity_markdown(slug: str, db: Session = Depends(get_db)):
+    """Dossier Markdown complet : portrait (URL **publique**), biographie
+    factuelle et bibliographie. Pensé pour être copié/partagé hors LAN →
+    **exclut les attributs sensibles RGPD art. 9** (cf. bibliography.py)."""
+    from bibliography import entity_markdown
+
+    entity = db.scalar(select(Entity).where(Entity.slug == slug))
+    if entity is None or entity.wikidata_status == NOT_PERSON_STATUS:
+        raise HTTPException(status_code=404, detail="entity not found")
+    md = entity_markdown(entity.id)
+    if md is None:
+        raise HTTPException(status_code=404, detail="entity not found")
+    # filename ASCII-safe pour Content-Disposition
+    return PlainTextResponse(
+        md,
+        media_type="text/markdown; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{slug}.md"',
+        },
+    )
+
+
 @app.post("/admin/notify-test")
 def admin_notify_test():
     """Envoie une notification Discord de test (avec image annotée landmarks)
@@ -1951,6 +2018,20 @@ def admin_notify_run():
     from notifications import run_notify_cycle
 
     return run_notify_cycle()
+
+
+@app.post("/admin/digest-test")
+def admin_digest_test():
+    """Force l'envoi du digest hebdomadaire (synthèse share of voice) hors
+    planification. Renvoie 503 si le webhook Discord est absent."""
+    from notifications import maybe_send_digest
+
+    if not config.DISCORD_WEBHOOK_URL:
+        raise HTTPException(
+            status_code=503,
+            detail="webhook Discord absent (DISCORD_WEBHOOK_URL vide)",
+        )
+    return maybe_send_digest(force=True)
 
 
 @app.get("/entities/{slug}/export.jpg")
@@ -2057,6 +2138,98 @@ def get_entity_timeline(
         "total_articles": total_articles,
         "max_count": max_count,
         "days": days,
+    }
+
+
+def _entity_day_counts(db, entity_id: int, from_date, to_date) -> list[dict]:
+    """Articles distincts par jour pour une entité sur la fenêtre — base
+    commune au timeline simple et à la superposition (timeline-compare)."""
+    rows = db.execute(
+        select(
+            Article.published_at,
+            func.count(func.distinct(Article.id)).label("n"),
+        )
+        .join(ArticleEntity, ArticleEntity.article_id == Article.id)
+        .where(
+            ArticleEntity.entity_id == entity_id,
+            Article.published_at.is_not(None),
+            Article.published_at >= from_date,
+            Article.published_at <= to_date,
+        )
+        .group_by(Article.published_at)
+        .order_by(Article.published_at)
+    ).all()
+    return [
+        {"date": row.published_at.isoformat(), "count": int(row.n)} for row in rows
+    ]
+
+
+@app.get("/entities/{slug}/timeline-compare")
+def get_entity_timeline_compare(
+    slug: str,
+    other: str = Query(..., description="slug de la 2e entité à superposer"),
+    db: Session = Depends(get_db),
+):
+    """Superposition de deux timelines (visualisation de cooccurrence).
+
+    Retourne les deux séries `[{date, count}]` sur la même fenêtre 365 j +
+    `shared_articles` = nombre d'articles **de la fenêtre** mentionnant les
+    deux entités (mesure de co-présence éditoriale, recalculée par fenêtre,
+    distincte de la table `entity_cooccurrence` qui est all-time)."""
+    from datetime import timedelta
+
+    a = db.scalar(select(Entity).where(Entity.slug == slug))
+    b = db.scalar(select(Entity).where(Entity.slug == other))
+    for ent in (a, b):
+        if ent is None or ent.wikidata_status == NOT_PERSON_STATUS:
+            raise HTTPException(status_code=404, detail="entity not found")
+
+    to_date = date.today()
+    from_date = to_date - timedelta(days=365)
+
+    series_a = _entity_day_counts(db, a.id, from_date, to_date)
+    series_b = _entity_day_counts(db, b.id, from_date, to_date)
+
+    # Articles de la fenêtre liés AUX DEUX entités (cooccurrence fenêtrée).
+    links_a = (
+        select(ArticleEntity.article_id)
+        .where(ArticleEntity.entity_id == a.id)
+        .scalar_subquery()
+    )
+    links_b = (
+        select(ArticleEntity.article_id)
+        .where(ArticleEntity.entity_id == b.id)
+        .scalar_subquery()
+    )
+    shared = (
+        db.scalar(
+            select(func.count(func.distinct(Article.id)))
+            .where(
+                Article.id.in_(links_a),
+                Article.id.in_(links_b),
+                Article.published_at.is_not(None),
+                Article.published_at >= from_date,
+                Article.published_at <= to_date,
+            )
+        )
+        or 0
+    )
+
+    def _pack(ent, series):
+        return {
+            "slug": ent.slug,
+            "name": ent.name,
+            "days": series,
+            "total_articles": sum(d["count"] for d in series),
+            "max_count": max((d["count"] for d in series), default=0),
+        }
+
+    return {
+        "from": from_date.isoformat(),
+        "to": to_date.isoformat(),
+        "shared_articles": shared,
+        "a": _pack(a, series_a),
+        "b": _pack(b, series_b),
     }
 
 

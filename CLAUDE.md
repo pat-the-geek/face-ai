@@ -108,6 +108,8 @@ cp ./data/face_ai.db ./data/face_ai.db.bak
 
 Coverage targets: backend 80%, frontend 60%. Wikimedia tests must use JSON fixtures — never hit the live API in CI.
 
+**⚠ Isolation des tests vs DB prod (incident 2026-06-02).** `tests/conftest.py` redirige `FACE_AI_DB` vers une base temporaire et la fixture autouse `_clean_tables` **efface toutes les rows entre chaque test**. Si un module de test importe `database`/`api`/un module métier (qui importe `database`) **au top-level**, l'engine SQLAlchemy se câble sur la **vraie** DB `/data/face_ai.db` dès la *collecte* pytest (avant que conftest ne redirige l'env) → `_clean_tables` **wipe le corpus de production**. C'est arrivé via un `import notifications` en tête d'un fichier de test (3717 entités effacées, restaurées depuis `daily-2026-06-01.db.gz`). Parades en place : (a) conftest fixe l'env **au niveau module** (avant la collecte) ; (b) garde-fou `_assert_test_db` qui **aborte la session** (`pytest.exit`, code 3) si l'engine ne pointe pas sur la DB de test ; (c) **convention** : dans un test, importer `database`/modules métier **dans les fonctions**, jamais au top-level. Par double sécurité quand on lance pytest dans le conteneur prod (qui a `FACE_AI_DB=/data/face_ai.db`), ajouter `-e FACE_AI_DB=/tmp/pytest_safe.db`.
+
 ## File layout (planned, per spec §15)
 
 ```

@@ -33,13 +33,17 @@ from __future__ import annotations
 import logging
 from pathlib import Path
 
-from sqlalchemy import delete, select
+from datetime import datetime, timedelta
 
+from sqlalchemy import delete, func, or_, select
+
+import config
 from database import (
     Article,
     ArticleEntity,
     Entity,
     EntityAlias,
+    EntityCooccurrence,
     FaceAnalysis,
     Image,
     SessionLocal,
@@ -247,6 +251,112 @@ def find_orphan_articles() -> int:
         db.close()
 
 
+def find_orphan_entities(days: int | None = None) -> list[Entity]:
+    """Entités orphelines = `not_found` Wikidata + 0 image + confirmées
+    not_found depuis > `days` jours.
+
+    Différence avec `not_person` : `not_found` signifie « introuvable sur
+    Wikidata » (pas « confirmée non-humaine »). Une telle entité est soit un
+    faux PERSON du NER WUDD, soit une personne trop obscure. Sans portrait
+    (0 image), elle est inutilisable dans une galerie de visages → candidate
+    à la purge. Le seuil temporel évite de toucher une entité tout juste
+    marquée not_found qui pourrait recevoir un portrait sous peu (ingestion
+    asynchrone).
+    """
+    if days is None:
+        days = config.CLEANUP_ORPHAN_AFTER_DAYS
+    cutoff = datetime.utcnow() - timedelta(days=days)
+    db = SessionLocal()
+    try:
+        # Sous-requête : entity_id ayant au moins une image. **Filtrer les
+        # NULL est crucial** : `id NOT IN (… , NULL)` est faux pour TOUTES les
+        # lignes en SQL (piège NULL). Sans ce filtre, des images à entity_id
+        # NULL (ingestion en attente) feraient retourner 0 orphelin à tort.
+        with_images = select(Image.entity_id).where(Image.entity_id.is_not(None)).distinct()
+        return (
+            db.execute(
+                select(Entity)
+                .where(
+                    Entity.wikidata_status == "not_found",
+                    Entity.id.not_in(with_images),
+                    # synced_at NULL est traité comme « assez vieux » : un
+                    # not_found sans horodatage est un résidu historique.
+                    or_(
+                        Entity.wikidata_synced_at.is_(None),
+                        Entity.wikidata_synced_at < cutoff,
+                    ),
+                )
+                .order_by(Entity.name)
+            )
+            .scalars()
+            .all()
+        )
+    finally:
+        db.close()
+
+
+def _delete_orphan(db, entity: Entity) -> None:
+    """Suppression COMPLÈTE d'une entité orpheline (pas de tombstone).
+
+    Contrairement à `purge_non_person`, on retire la row `entities`
+    elle-même : `not_found` n'est pas un verdict définitif (l'entité peut
+    réapparaître avec un portrait via un futur pull WUDD et mériter alors
+    une vraie place). On supprime aussi ses liens (aliases, article_entities,
+    cooccurrences) car les FK SQLite ne cascadent pas (CLAUDE.md). Le
+    trigger FTS5 `entities_fts_ad` nettoie l'index plein-texte au DELETE.
+    """
+    eid = entity.id
+    db.execute(delete(ArticleEntity).where(ArticleEntity.entity_id == eid))
+    db.execute(delete(EntityAlias).where(EntityAlias.entity_id == eid))
+    db.execute(
+        delete(EntityCooccurrence).where(
+            or_(
+                EntityCooccurrence.entity_a_id == eid,
+                EntityCooccurrence.entity_b_id == eid,
+            )
+        )
+    )
+    db.delete(entity)
+
+
+def cleanup_orphan_entities(days: int | None = None, dry_run: bool = False) -> dict:
+    """Purge manuelle des entités orphelines (`find_orphan_entities`).
+
+    `dry_run=True` : ne supprime rien, retourne juste la liste des candidates.
+    Déclenchée à la main (endpoint `/admin/cleanup-orphans` + UI) — pas de
+    boucle worker, l'opération est destructive et on veut un humain dans la
+    boucle (décision de périmètre, cf. AskUserQuestion 2026-06-02).
+    """
+    if days is None:
+        days = config.CLEANUP_ORPHAN_AFTER_DAYS
+    orphans = find_orphan_entities(days)
+    names = [{"slug": e.slug, "name": e.name} for e in orphans]
+
+    if dry_run:
+        return {"dry_run": True, "days": days, "count": len(names), "entities": names}
+
+    db = SessionLocal()
+    try:
+        removed = 0
+        for o in orphans:
+            entity = db.get(Entity, o.id)
+            if entity is None:
+                continue
+            _delete_orphan(db, entity)
+            removed += 1
+        db.commit()
+        log.info("cleanup orphelines : %d entités supprimées (seuil %dj)", removed, days)
+        return {
+            "dry_run": False,
+            "days": days,
+            "count": removed,
+            "entities": names,
+            "orphan_articles": find_orphan_articles(),
+        }
+    finally:
+        db.close()
+
+
 if __name__ == "__main__":
     import argparse
     import logging as lg
@@ -271,12 +381,30 @@ if __name__ == "__main__":
         default=None,
         help="Purge directement une entité par ID (forçage manuel)",
     )
+    parser.add_argument(
+        "--cleanup-orphans",
+        action="store_true",
+        help="Purge les entités orphelines (not_found Wikidata + 0 image > N jours)",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Avec --cleanup-orphans : liste les candidates sans rien supprimer",
+    )
+    parser.add_argument(
+        "--days",
+        type=int,
+        default=None,
+        help="Seuil en jours pour --cleanup-orphans (défaut config)",
+    )
     args = parser.parse_args()
 
     lg.basicConfig(level=lg.INFO, format="%(asctime)s %(name)s %(levelname)s %(message)s")
 
     if args.purge_entity is not None:
         print(purge_non_person(args.purge_entity))
+    elif args.cleanup_orphans:
+        print(cleanup_orphan_entities(days=args.days, dry_run=args.dry_run))
     elif args.purge_non_persons:
         result = purge_all_non_persons(limit=args.limit)
         print(result)
