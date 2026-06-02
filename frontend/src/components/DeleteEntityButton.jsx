@@ -27,7 +27,13 @@ export default function DeleteEntityButton({ entity }) {
     mutationFn: () => api.deleteEntity(entity.slug),
     onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["letters"] });
+      // La sidebar de gauche (EntityList) charge via useEntitiesProgressive,
+      // dont les clés sont "entities-first"/"entities-rest" — pas "entities".
+      // invalidateQueries matche par préfixe d'élément exact, donc ces clés
+      // doivent être invalidées explicitement sinon la liste ne se rafraîchit pas.
       queryClient.invalidateQueries({ queryKey: ["entities"] });
+      queryClient.invalidateQueries({ queryKey: ["entities-first"] });
+      queryClient.invalidateQueries({ queryKey: ["entities-rest"] });
       queryClient.removeQueries({ queryKey: ["entity", entity.slug] });
       queryClient.removeQueries({ queryKey: ["entityImages", entity.slug] });
       navigate("/", { replace: true });
