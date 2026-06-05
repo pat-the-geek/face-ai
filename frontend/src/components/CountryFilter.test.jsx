@@ -50,6 +50,20 @@ describe("CountryFilter", () => {
     expect(onSelect).toHaveBeenCalledWith(null);
   });
 
+  it("trie les pays par ordre alphabétique (France avant Suisse, malgré l'ordre backend)", async () => {
+    // Le mock renvoie CH (142) avant FR (87) — ordre effectif décroissant.
+    // L'UI doit réordonner A→Z : France avant Suisse.
+    renderFilter();
+    await waitFor(() => screen.getByText("Suisse"));
+    const labels = screen
+      .getAllByRole("button")
+      .map((b) => b.textContent)
+      .filter((t) => /France|Suisse/.test(t));
+    expect(labels.findIndex((t) => /France/.test(t))).toBeLessThan(
+      labels.findIndex((t) => /Suisse/.test(t)),
+    );
+  });
+
   it("le chip Tous réinitialise le filtre", async () => {
     const onSelect = vi.fn();
     renderFilter({ selected: "CH", onSelect });
