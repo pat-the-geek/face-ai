@@ -16,6 +16,12 @@ export default function CountryFilter({ selected, onSelect }) {
 
   if (isLoading || !countries?.length) return null;
 
+  // Tri alphabétique par nom (FR) pour l'affichage — le backend renvoie par
+  // effectif décroissant (utile au MCP/analyse), l'UI préfère l'ordre A→Z.
+  const sorted = [...countries].sort((a, b) =>
+    (a.name || a.code).localeCompare(b.name || b.code, "fr"),
+  );
+
   return (
     <div className="flex items-center gap-1.5 px-8 py-1.5 border-b divider overflow-x-auto whitespace-nowrap text-xs font-mono">
       <button
@@ -28,7 +34,7 @@ export default function CountryFilter({ selected, onSelect }) {
       >
         Tous
       </button>
-      {countries.map((c) => {
+      {sorted.map((c) => {
         const active = selected === c.code;
         return (
           <button

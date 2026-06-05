@@ -32,6 +32,10 @@ node_modules/
 dist/
 .vite/
 
+# Logs d'ingestion OSINT (runtime, OSINT_LOG_DIR)
+logs/
+backend/logs/
+
 # Workspace local Claude Code
 .claude/
 
