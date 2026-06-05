@@ -2,10 +2,19 @@ import { useEffect, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { api } from "../api/client";
 
-export function useLetters(favoritesOnly = false, sortBy = "canonical") {
+export function useLetters(favoritesOnly = false, sortBy = "canonical", country = null) {
   return useQuery({
-    queryKey: ["letters", favoritesOnly, sortBy],
-    queryFn: () => api.letters({ favoritesOnly, sortBy }),
+    queryKey: ["letters", favoritesOnly, sortBy, country || "all"],
+    queryFn: () => api.letters({ favoritesOnly, sortBy, country }),
+  });
+}
+
+/** Liste des pays représentés (chips du CountryFilter). Stable, cache long. */
+export function useCountries() {
+  return useQuery({
+    queryKey: ["countries"],
+    queryFn: () => api.countries(),
+    staleTime: 12 * 60 * 60 * 1000,
   });
 }
 
@@ -29,13 +38,14 @@ export function useEntitiesProgressive(
   letter,
   favoritesOnly = false,
   sortBy = "canonical",
+  country = null,
 ) {
   const [loadRest, setLoadRest] = useState(false);
 
   const first = useQuery({
-    queryKey: ["entities-first", letter || "all", favoritesOnly, sortBy],
+    queryKey: ["entities-first", letter || "all", favoritesOnly, sortBy, country || "all"],
     queryFn: () =>
-      api.entities({ letter, favoritesOnly, sortBy, limit: 200, offset: 0 }),
+      api.entities({ letter, favoritesOnly, sortBy, country, limit: 200, offset: 0 }),
   });
 
   // Quand la 1re page est arrivée, planifie le reste après idle (ou 100 ms
@@ -53,12 +63,13 @@ export function useEntitiesProgressive(
   }, [first.isSuccess, loadRest]);
 
   const rest = useQuery({
-    queryKey: ["entities-rest", letter || "all", favoritesOnly, sortBy],
+    queryKey: ["entities-rest", letter || "all", favoritesOnly, sortBy, country || "all"],
     queryFn: () =>
       api.entities({
         letter,
         favoritesOnly,
         sortBy,
+        country,
         limit: 20000,
         offset: 200,
       }),

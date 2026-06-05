@@ -9,6 +9,7 @@ import DdgPicker from "./DdgPicker";
 import DeleteEntityButton from "./DeleteEntityButton";
 import FavoriteToggle from "./FavoriteToggle";
 import GaltonComposite from "./GaltonComposite";
+import OsintPanel from "./OsintPanel";
 import PoseFilter from "./PoseFilter";
 import SourcesBreakdown from "./SourcesBreakdown";
 import TimelineCompare from "./TimelineCompare";
@@ -205,6 +206,7 @@ export default function GalleryHeader({
           <CooccurrencePartners slug={entity.slug} />
           <BehavioralProfile slug={entity.slug} />
           <SourcesBreakdown slug={entity.slug} />
+          <OsintPanel slug={entity.slug} />
         </div>
       )}
 

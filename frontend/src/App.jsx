@@ -6,6 +6,7 @@ import AlphaNav from "./components/AlphaNav";
 import AmbientDebug from "./components/AmbientDebug";
 import AuditPanel from "./components/AuditPanel";
 import ColorModeToggle from "./components/ColorModeToggle";
+import CountryFilter from "./components/CountryFilter";
 import EntityList from "./components/EntityList";
 import FontScaler from "./components/FontScaler";
 import GalleryPanel from "./components/GalleryPanel";
@@ -18,6 +19,8 @@ import { api } from "./api/client";
 export default function App() {
   const [letter, setLetter] = useState(null);
   const [favoritesOnly, setFavoritesOnly] = useState(false);
+  // Filtre pays partagé (v030) entre la liste et la carte.
+  const [country, setCountry] = useState(null);
   const location = useLocation();
   const onAuditRoute = location.pathname === "/audit";
   const onAdminRoute = location.pathname === "/admin";
@@ -122,6 +125,11 @@ export default function App() {
         />
       )}
 
+      {/* Filtre pays — visible sur la liste et la carte, état partagé (v030) */}
+      {(!fullWidthRoute || onMapRoute) && (
+        <CountryFilter selected={country} onSelect={setCountry} />
+      )}
+
       <div
         className={`flex-1 overflow-hidden grid grid-rows-1 ${
           fullWidthRoute
@@ -131,7 +139,11 @@ export default function App() {
       >
         {!fullWidthRoute && (
           <aside className="border-r divider overflow-hidden min-h-0 h-full">
-            <EntityList letter={letter} favoritesOnly={favoritesOnly} />
+            <EntityList
+              letter={letter}
+              favoritesOnly={favoritesOnly}
+              country={country}
+            />
           </aside>
         )}
         <main className="overflow-hidden min-h-0">
@@ -139,7 +151,7 @@ export default function App() {
             <Route path="/" element={<GalleryPanel />} />
             <Route path="/audit" element={<AuditPanel />} />
             <Route path="/admin" element={<AdminPanel />} />
-            <Route path="/carte" element={<MapView />} />
+            <Route path="/carte" element={<MapView country={country} />} />
             <Route path="/tendances" element={<ShareOfVoice />} />
             <Route
               path="/compare/:slugA/:slugB"

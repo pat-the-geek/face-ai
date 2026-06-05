@@ -77,6 +77,39 @@ class Entity(Base):
     longitude = Column(Float)
     geo_source = Column(Text)  # 'city' (P625 lieu de naissance) | 'country' (centroïde nationalité)
 
+    # Filtre pays (v030 OSINT). Dérivé de Wikidata P27 → P297 (code ISO 3166-1
+    # alpha-2) + label FR. Transversal : alimente l'UI CountryFilter, la carte
+    # et les tools MCP list_entities_by_country / get_country_stats.
+    country_code = Column(Text)  # ISO 3166-1 alpha-2 ('CH', 'FR', 'US'…)
+    country_name = Column(Text)  # nom FR ('Suisse', 'France'…)
+
+    # ── Enrichissement OSINT open data (v030) ───────────────────────────────
+    # DÉCISION PÉRIMÈTRE 2026-06-05 (Patrick Ostertag) : ces colonnes étendent
+    # FACE.ai vers de la veille OSINT. Cadre explicite : UNIQUEMENT des données
+    # OPEN SOURCE concernant des PERSONNES PUBLIQUES déjà dans le corpus (aucune
+    # inférence, aucune source privée, aucun ciblage d'inconnus). Plusieurs de
+    # ces catégories (sanctions/PEP, casier ICIJ) relèvent du RGPD art. 9/10 :
+    # revue de conformité recommandée avant diffusion hors LAN. Cf. CLAUDE.md.
+
+    # OpenSanctions (P1A) — sanctions / PEP / criminels (open data CC BY-NC)
+    sanctions_status = Column(Text)  # 'sanctioned' | 'pep' | 'clean' | 'unknown'
+    sanctions_detail = Column(Text)  # JSON : {datasets, topics, last_checked, score}
+    sanctions_synced_at = Column(DateTime)
+
+    # Parlement suisse parlament.ch (P1C) — Open Government Data
+    parliament_ch_id = Column(Integer)
+    parliament_ch_data = Column(Text)  # JSON : {party, canton, active, role, council}
+    is_swiss_parliament_member = Column(Boolean, server_default="0")
+
+    # GLEIF (P3A) — organisations légales liées (open data)
+    gleif_data = Column(Text)  # JSON : [{lei, legalName, country, status}]
+    gleif_synced_at = Column(DateTime)
+
+    # ICIJ Offshore Leaks (P3B) — Panama/Pandora/Bahamas (open data, sensible)
+    icij_match = Column(Boolean, server_default="0")
+    icij_detail = Column(Text)  # JSON : [{name, dataset, jurisdiction, node_id}]
+    icij_synced_at = Column(DateTime)
+
     # Centroïde d'identité ArcFace (v014, spec §11.2)
     identity_centroid = Column(LargeBinary)  # 2048 octets (512 floats L2-norm)
     identity_count = Column(Integer, server_default="0")
@@ -177,6 +210,9 @@ class Image(Base):
     identity_match_score = Column(Float)  # cosine distance au centroïde de l'entité
 
     association_status = Column(Text, server_default="auto")
+    # v030 (Wayback, P2B) : année de la capture archivée quand l'image provient
+    # de la Wayback Machine (source_provider='wayback_machine'). NULL sinon.
+    capture_year = Column(Integer)
     scraped_at = Column(DateTime, server_default=func.current_timestamp())
 
     article = relationship("Article", back_populates="images")
@@ -267,6 +303,30 @@ class EntityCooccurrence(Base):
     )
     shared_articles = Column(Integer, nullable=False, server_default="0")
     updated_at = Column(DateTime, server_default=func.current_timestamp())
+
+
+class EntityGdeltCoverage(Base):
+    """Couverture médiatique mondiale GDELT d'une entité (v030, P2A).
+
+    Une ligne = un instantané de la couverture GDELT sur une fenêtre glissante
+    (`period_start`..`period_end`). On garde l'historique des snapshots (pas
+    d'upsert) pour pouvoir suivre l'évolution dans le temps ; le tool MCP
+    `get_entity_media_coverage` lit le plus récent. Données dérivées de l'API
+    GDELT publique (open, sans auth) — agrégat de couverture, pas de contenu.
+    """
+    __tablename__ = "entity_gdelt_coverage"
+
+    id = Column(Integer, primary_key=True)
+    entity_id = Column(
+        Integer, ForeignKey("entities.id", ondelete="CASCADE"), nullable=False
+    )
+    period_start = Column(Date)
+    period_end = Column(Date)
+    article_count = Column(Integer)
+    avg_tone = Column(Float)
+    top_countries = Column(Text)  # JSON : [{country, count}]
+    top_themes = Column(Text)  # JSON : [{theme, count}]
+    fetched_at = Column(DateTime, server_default=func.current_timestamp())
 
 
 class WorkerEvent(Base):

@@ -28,16 +28,18 @@ async function jsonRequest(path, method, body) {
 
 export const api = {
   health: () => jsonFetch("/health"),
-  letters: ({ favoritesOnly = false, sortBy } = {}) =>
+  letters: ({ favoritesOnly = false, sortBy, country } = {}) =>
     jsonFetch("/entities/letters", {
       favorites_only: favoritesOnly ? "true" : undefined,
       sort_by: sortBy || undefined,
+      country: country || undefined,
     }),
   entityTimeline: (slug) => jsonFetch(`/entities/${slug}/timeline`),
   entities: ({
     letter,
     favoritesOnly = false,
     sortBy,
+    country,
     limit = 200,
     offset = 0,
   } = {}) =>
@@ -45,11 +47,13 @@ export const api = {
       letter,
       favorites_only: favoritesOnly ? "true" : undefined,
       sort_by: sortBy || undefined,
+      country: country || undefined,
       limit,
       offset,
     }),
   entity: (slug) => jsonFetch(`/entities/${slug}`),
   entitiesMap: () => jsonFetch("/entities/map"),
+  countries: () => jsonFetch("/entities/countries"),
   entityCooccurrences: (slug, limit = 10) =>
     jsonFetch(`/entities/${slug}/cooccurrences`, { limit }),
   entityBehavioralProfile: (slug) =>
@@ -58,6 +62,7 @@ export const api = {
   shareOfVoice: ({ windowDays = 30, limit = 20 } = {}) =>
     jsonFetch("/corpus/share-of-voice", { window_days: windowDays, limit }),
   entitySources: (slug) => jsonFetch(`/entities/${slug}/sources`),
+  entityOsint: (slug) => jsonFetch(`/entities/${slug}/osint`),
   entityArticles: (slug, { limit = 50, offset = 0 } = {}) =>
     jsonFetch(`/entities/${slug}/articles`, { limit, offset }),
   timelineCompare: (slug, other) =>

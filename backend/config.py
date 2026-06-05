@@ -114,6 +114,32 @@ NOTIFY_NEW_PERSON_MAX_PER_CYCLE = int(
 # Dédup persistante via un fichier d'état (worker_events est purgé à 7 j).
 NOTIFY_MILESTONE_BLOCK = int(os.getenv("NOTIFY_MILESTONE_BLOCK", "50"))
 
+# ── Notifications OSINT non sensibles (v030) ────────────────────────────
+# IMPORTANT : ces alertes sortent HORS LAN (Discord). On ne notifie donc QUE
+# des signaux factuels publics non sensibles. Les statuts OpenSanctions/PEP et
+# les correspondances ICIJ (RGPD art. 9/10) sont VOLONTAIREMENT exclus du
+# webhook — ils restent consultables en LAN (API/MCP/UI). Cf. CLAUDE.md.
+
+# Scénario E « crise médiatique mondiale » (GDELT) : un snapshot récent de
+# couverture mondiale présente une tonalité moyenne fortement négative sur un
+# volume d'articles significatif. Signal de veille pur (agrégat public).
+NOTIFY_GDELT_TONE_THRESHOLD = float(os.getenv("NOTIFY_GDELT_TONE_THRESHOLD", "-5.0"))
+NOTIFY_GDELT_MIN_ARTICLES = int(os.getenv("NOTIFY_GDELT_MIN_ARTICLES", "20"))
+NOTIFY_GDELT_LOOKBACK_HOURS = int(os.getenv("NOTIFY_GDELT_LOOKBACK_HOURS", "48"))
+NOTIFY_GDELT_MAX_PER_CYCLE = int(os.getenv("NOTIFY_GDELT_MAX_PER_CYCLE", "5"))
+
+# Scénario F « nouveau parlementaire suisse » : une entité vient d'être
+# appariée à un·e élu·e de l'Assemblée fédérale (parlament.ch, donnée publique).
+NOTIFY_PARLIAMENT_MAX_PER_CYCLE = int(os.getenv("NOTIFY_PARLIAMENT_MAX_PER_CYCLE", "5"))
+
+# Scénario G « nouveau pays représenté » : le corpus accueille sa 1re
+# personnalité d'un pays jamais vu (expansion géographique). Dédup persistante
+# (notify_state.json) pour ne notifier chaque pays qu'une fois. Init silencieuse.
+NOTIFY_COUNTRY_ENABLED = (
+    os.getenv("FACE_AI_NOTIFY_COUNTRY", "true").lower() == "true"
+)
+NOTIFY_COUNTRY_MAX_PER_CYCLE = int(os.getenv("NOTIFY_COUNTRY_MAX_PER_CYCLE", "6"))
+
 # ── Digest hebdomadaire (v031) ──────────────────────────────────────────
 # Synthèse récurrente dérivée du share of voice (qui domine la presse cette
 # semaine, tendances, nouveaux entrants), en complément des alertes unitaires.
@@ -140,4 +166,56 @@ OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b")
 OLLAMA_TIMEOUT = int(os.getenv("OLLAMA_TIMEOUT", "60"))
 OLLAMA_SYNTHESIS_ENABLED = (
     os.getenv("FACE_AI_OLLAMA_SYNTHESIS", "true").lower() == "true"
+)
+
+# ── Enrichissement OSINT open data (v030) ───────────────────────────────
+# DÉCISION PÉRIMÈTRE 2026-06-05 (Patrick Ostertag) : enrichissement OSINT
+# strictement borné à des DONNÉES OPEN SOURCE concernant des PERSONNES
+# PUBLIQUES déjà dans le corpus. Aucune inférence, aucune source privée.
+# Cf. CLAUDE.md. Toutes les sources ci-dessous sont gratuites/ouvertes.
+
+# Seuil de fuzzy matching nom corpus ↔ source externe (rapidfuzz,
+# token_sort_ratio 0..100). 90 = quasi-identique tolérant à l'ordre/accents.
+# Au-dessus du seuil → on considère que c'est la même personne.
+OSINT_FUZZY_THRESHOLD = int(os.getenv("OSINT_FUZZY_THRESHOLD", "90"))
+# Répertoire des logs d'ingestion (logs/ingest_{source}_{date}.log).
+OSINT_LOG_DIR = Path(os.getenv("OSINT_LOG_DIR", "./logs"))
+
+# OpenSanctions (P1A). Bulk download du dataset fusionné `default` (JSON Lines).
+OPENSANCTIONS_URL = os.getenv(
+    "OPENSANCTIONS_URL",
+    "https://data.opensanctions.org/datasets/latest/default/entities.ftm.json",
+)
+
+# Parlement suisse (P1C). API OData officielle.
+PARLAMENT_CH_BASE_URL = os.getenv(
+    "PARLAMENT_CH_BASE_URL", "https://ws.parlament.ch/odata.svc"
+)
+
+# GDELT (P2A). API DOC 2.0 publique, sans auth. Throttle agressif observé
+# (429 dès ~1 req/sec en pratique, run témoin 2026-06-05) → délai inter-requête
+# prudent par défaut. Baisser via env si l'API se montre tolérante.
+GDELT_API_URL = os.getenv(
+    "GDELT_API_URL", "https://api.gdeltproject.org/api/v2/doc/doc"
+)
+GDELT_RATE_LIMIT_SECONDS = float(os.getenv("GDELT_RATE_LIMIT_SECONDS", "5.0"))
+GDELT_DEFAULT_DAYS = int(os.getenv("GDELT_DEFAULT_DAYS", "30"))
+
+# Wayback Machine (P2B). CDX API + politeness delay.
+WAYBACK_CDX_URL = os.getenv(
+    "WAYBACK_CDX_URL", "https://web.archive.org/cdx/search/cdx"
+)
+WAYBACK_RATE_LIMIT_SECONDS = float(os.getenv("WAYBACK_RATE_LIMIT_SECONDS", "2.0"))
+
+# GLEIF (P3A). API REST publique v1.
+GLEIF_API_URL = os.getenv("GLEIF_API_URL", "https://api.gleif.org/api/v1")
+
+# ICIJ Offshore Leaks (P3B). API publique de recherche.
+ICIJ_API_URL = os.getenv(
+    "ICIJ_API_URL", "https://offshoreleaks.icij.org/api/v1"
+)
+
+# User-Agent commun aux requêtes OSINT (politesse + contact, comme Wikimedia).
+OSINT_USER_AGENT = os.getenv(
+    "OSINT_USER_AGENT", "FACE.ai/1.0 (veille open-data; contact@ok-ia.ch)"
 )

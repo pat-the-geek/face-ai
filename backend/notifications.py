@@ -7,7 +7,7 @@ faciaux**, une **synthèse rédigée par l'IA locale Ollama** (repli déterminis
 si injoignable), des chapitres de **repères** factuels + **corpus & médias**,
 et le **heatmap d'activité presse** quand il est pertinent.
 
-Quatre scénarios :
+Scénarios corpus (A–D) :
 - **A — pic de visibilité** : flambée d'articles vs la période précédente.
 - **B — photo inhabituelle** : image fraîchement ingérée flaggée par l'audit
   ArcFace (distance élevée au centroïde d'identité).
@@ -15,13 +15,24 @@ Quatre scénarios :
   d'un portrait.
 - **D — palier corpus** : franchissement d'un bloc de N personnalités gérées.
 
-Dédup : marqueur dans `worker_events` (rotation 7 j → les fenêtres de
-détection restent < 7 j). Le palier (rare, doit survivre > 7 j) utilise un
-fichier d'état persistant sous `data/`.
+Scénarios OSINT non sensibles (E–G, v030), bâtis sur les nouvelles sources :
+- **E — crise médiatique mondiale** : tonalité moyenne GDELT fortement négative
+  sur un volume d'articles significatif (agrégat public).
+- **F — nouveau parlementaire suisse** : entité appariée à un·e élu·e
+  parlament.ch (mandat public).
+- **G — nouveau pays représenté** : 1re personnalité d'un pays jamais vu
+  (expansion géographique, nationalité = donnée publique).
 
-**Périmètre** : la synthèse n'inclut **que des données factuelles publiques**
-+ signaux corpus — **jamais** les attributs sensibles RGPD art. 9 (la notif
-sort hors LAN, hors du cadre d'atténuation §1.5/v027).
+Dédup : marqueur dans `worker_events` (rotation 7 j → les fenêtres de
+détection restent < 7 j). Palier (D) et pays connus (G) — rares, doivent
+survivre > 7 j — utilisent le fichier d'état persistant sous `data/`.
+
+**Périmètre — frontière LAN.** La notif sort **hors LAN** (Discord) : on n'y
+met **que des données factuelles publiques** + signaux corpus. Sont
+**volontairement exclus** du webhook : les attributs sensibles RGPD art. 9
+(v027) ET les enrichissements OSINT sensibles (statut OpenSanctions/PEP,
+correspondances ICIJ — art. 9/10). Ces derniers restent consultables **en LAN**
+(API/MCP/UI) mais ne franchissent pas la frontière réseau. Cf. CLAUDE.md.
 """
 from __future__ import annotations
 
@@ -38,6 +49,7 @@ from database import (
     Article,
     ArticleEntity,
     Entity,
+    EntityGdeltCoverage,
     FaceAnalysis,
     Image,
     SessionLocal,
@@ -56,6 +68,8 @@ ACCENT_FLAG = (200, 45, 45)
 ACCENT_SPIKE = (220, 120, 30)
 ACCENT_MILESTONE = (190, 150, 45)
 ACCENT_TEST = (120, 120, 120)
+ACCENT_TONE = (150, 60, 60)  # E — crise médiatique GDELT
+ACCENT_PARLIAMENT = (60, 110, 160)  # F — nouveau parlementaire suisse
 
 
 # ── Webhook ─────────────────────────────────────────────────────────────
@@ -643,6 +657,172 @@ def _notify_milestones(db) -> int:
     return 0
 
 
+# ── Scénario E : crise médiatique mondiale (GDELT) ──────────────────────
+# Donnée publique agrégée (tonalité moyenne de la couverture mondiale). Aucun
+# attribut sensible — sûr pour une notif hors LAN.
+
+
+def _notify_media_tone(db) -> int:
+    cutoff = datetime.utcnow() - timedelta(hours=config.NOTIFY_GDELT_LOOKBACK_HOURS)
+    rows = (
+        db.execute(
+            select(EntityGdeltCoverage)
+            .where(
+                EntityGdeltCoverage.fetched_at >= cutoff,
+                EntityGdeltCoverage.avg_tone.is_not(None),
+                EntityGdeltCoverage.avg_tone <= config.NOTIFY_GDELT_TONE_THRESHOLD,
+                EntityGdeltCoverage.article_count >= config.NOTIFY_GDELT_MIN_ARTICLES,
+            )
+            .order_by(EntityGdeltCoverage.avg_tone.asc())
+            .limit(config.NOTIFY_GDELT_MAX_PER_CYCLE * 3)
+        )
+        .scalars()
+        .all()
+    )
+    sent = 0
+    for snap in rows:
+        if sent >= config.NOTIFY_GDELT_MAX_PER_CYCLE:
+            break
+        entity = db.get(Entity, snap.entity_id)
+        if entity is None or entity.wikidata_status == NOT_PERSON:
+            continue
+        period = snap.period_end.isoformat() if snap.period_end else "?"
+        key = f"notif_gdelt_tone:{entity.id}:{period}"
+        if _already_sent(db, key):
+            continue
+        try:
+            countries = json.loads(snap.top_countries or "[]")
+        except Exception:
+            countries = []
+        header = (
+            f"🌍 **Crise médiatique mondiale — {entity.name}** · tonalité GDELT "
+            f"{snap.avg_tone:.1f} sur {snap.article_count} articles — fiche jointe."
+        )
+        extra = [
+            f"Couverture GDELT : ton moyen {snap.avg_tone:.1f} "
+            f"(négatif = défavorable) sur {snap.article_count} articles"
+        ]
+        if countries:
+            extra.append(
+                "Pays sources : "
+                + " · ".join(f"{c['country']} ({c['count']})" for c in countries[:4])
+            )
+        if _send_entity_card(
+            db,
+            entity,
+            badge="Crise médiatique",
+            accent=ACCENT_TONE,
+            portrait_img=_best_portrait(db, entity.id),
+            header=header,
+            extra_corpus=extra,
+            force_heatmap=True,
+        ):
+            _mark_sent(db, key, {"entity_id": entity.id, "tone": snap.avg_tone})
+            sent += 1
+    return sent
+
+
+# ── Scénario F : nouveau parlementaire suisse (parlament.ch) ─────────────
+# Mandat public (Assemblée fédérale) — factuel public, pas un attribut art. 9.
+
+
+def _notify_new_parliament(db) -> int:
+    rows = (
+        db.execute(
+            select(Entity)
+            .where(
+                Entity.is_swiss_parliament_member.is_(True),
+                _person_filter(),
+            )
+            .limit(config.NOTIFY_PARLIAMENT_MAX_PER_CYCLE * 3)
+        )
+        .scalars()
+        .all()
+    )
+    sent = 0
+    for entity in rows:
+        if sent >= config.NOTIFY_PARLIAMENT_MAX_PER_CYCLE:
+            break
+        key = f"notif_parliament:{entity.id}"
+        if _already_sent(db, key):
+            continue
+        try:
+            data = json.loads(entity.parliament_ch_data or "{}")
+        except Exception:
+            data = {}
+        bits = " · ".join(
+            filter(None, [data.get("party"), data.get("canton"), data.get("council")])
+        )
+        header = (
+            f"🏛️ **Parlementaire suisse identifié·e — {entity.name}**"
+            + (f" ({bits})" if bits else "")
+            + " — fiche de synthèse jointe."
+        )
+        extra = [f"Mandat fédéral : {bits}"] if bits else None
+        if _send_entity_card(
+            db,
+            entity,
+            badge="Parlement suisse",
+            accent=ACCENT_PARLIAMENT,
+            portrait_img=_best_portrait(db, entity.id),
+            header=header,
+            extra_corpus=extra,
+        ):
+            _mark_sent(db, key, {"entity_id": entity.id})
+            sent += 1
+    return sent
+
+
+# ── Scénario G : nouveau pays représenté ────────────────────────────────
+# Nationalité = donnée publique non sensible. Dédup persistante par code pays
+# (notify_state.json), init silencieuse pour ne pas notifier l'existant.
+
+
+def _notify_new_countries(db) -> int:
+    if not config.NOTIFY_COUNTRY_ENABLED:
+        return 0
+    from osint_common import country_code_to_flag
+
+    rows = db.execute(
+        select(Entity.country_code, Entity.country_name, func.count())
+        .where(Entity.country_code.is_not(None), _person_filter())
+        .group_by(Entity.country_code)
+    ).all()
+    present = {code: (name, n) for code, name, n in rows}
+
+    state = _load_state()
+    known = state.get("known_countries")
+    if known is None:
+        # Init silencieuse : on enregistre l'existant sans notifier.
+        state["known_countries"] = sorted(present)
+        _save_state(state)
+        return 0
+    known_set = set(known)
+
+    new_codes = [c for c in present if c not in known_set]
+    # Notifie d'abord les pays les mieux représentés (plus signifiants).
+    new_codes.sort(key=lambda c: present[c][1], reverse=True)
+
+    sent = 0
+    for code in new_codes:
+        if sent >= config.NOTIFY_COUNTRY_MAX_PER_CYCLE:
+            break
+        name, n = present[code]
+        flag = country_code_to_flag(code)
+        header = (
+            f"🗺️ **Nouveau pays dans le corpus — {flag} {name or code}** · "
+            f"{n} personnalité{'s' if n > 1 else ''} suivie{'s' if n > 1 else ''}. "
+            "L'espace médiatique couvert par FACE.ai s'étend."
+        )
+        if send_discord(header):
+            known_set.add(code)
+            sent += 1
+    if sent:
+        state["known_countries"] = sorted(known_set)
+        _save_state(state)
+    return sent
+
+
 # ── Digest hebdomadaire (v031) ──────────────────────────────────────────
 
 
@@ -747,6 +927,10 @@ def run_notify_cycle() -> dict:
             "new_persons": _notify_new_persons(db),
             "flagged": _notify_flagged(db),
             "spikes": _notify_spikes(db),
+            # Scénarios OSINT non sensibles (v030)
+            "media_tone": _notify_media_tone(db),
+            "new_parliament": _notify_new_parliament(db),
+            "new_countries": _notify_new_countries(db),
         }
     finally:
         db.close()

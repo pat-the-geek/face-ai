@@ -1,0 +1,38 @@
+# FACE.ai — Planification des ingestions OSINT (v030)
+# Données OPEN SOURCE, personnes publiques du corpus uniquement. Cf. CLAUDE.md.
+#
+# Installer côté hôte (le `-T` évite l'allocation d'un TTY en cron) :
+#   crontab -e   puis coller les lignes ci-dessous (adapter le chemin du repo).
+#
+# Toutes les commandes tournent dans le conteneur `api` (qui a database/config).
+# Logs : backend/logs/ingest_{source}_{date}.log (monté via le bind static/data).
+
+REPO=/Users/patrickostertag/Documents/DataForIA/FACE.ai
+
+# ── Pays (transversal) : Wikidata P27→P297. Mensuel, après enrichissement.
+0 4 1 * *   cd $REPO && docker compose exec -T api python scripts/enrich_entity_countries.py
+
+# ── P1A OpenSanctions (PEP/sanctions) — hebdomadaire (bulk download).
+0 2 * * 1   cd $REPO && docker compose exec -T api python scripts/ingest_opensanctions.py
+
+# ── P1B Wikimedia Commons (portraits libres) — hebdomadaire.
+0 5 * * 1   cd $REPO && docker compose exec -T api python scripts/ingest_wikimedia_commons.py
+
+# ── P1C Parlement suisse — mensuel.
+0 3 1 * *   cd $REPO && docker compose exec -T api python scripts/ingest_parlament_ch.py
+
+# ── P2A GDELT (couverture médiatique) — hebdomadaire, top 100 entités.
+0 6 * * 1   cd $REPO && docker compose exec -T api python scripts/ingest_gdelt.py --limit 100
+
+# ── P2B Wayback (portraits archivés) — mensuel, échantillon.
+0 4 15 * *  cd $REPO && docker compose exec -T api python scripts/ingest_wayback_portraits.py --limit 50
+
+# ── P3A GLEIF (organisations légales) — mensuel.
+0 3 5 * *   cd $REPO && docker compose exec -T api python scripts/ingest_gleif.py --limit 200
+
+# ── P3B ICIJ Offshore Leaks — mensuel. Mode CSV recommandé (fiable) :
+#    télécharger l'export officiel data.icij.org dans /data/icij/ d'abord.
+0 4 5 * *   cd $REPO && docker compose exec -T api python scripts/ingest_icij.py --csv /data/icij
+
+# Alternative launchd (macOS) : créer des .plist équivalents sous
+# ~/Library/LaunchAgents/ (cf. ai.face.backup-full déjà en place pour le modèle).

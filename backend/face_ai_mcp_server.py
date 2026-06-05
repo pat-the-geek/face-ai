@@ -1018,6 +1018,123 @@ def get_entity_sources(slug: str) -> dict:
 
 
 # ──────────────────────────────────────────────────────────────────────
+# Enrichissement OSINT open data (v030) — délégué à osint_lookup (lecture
+# pure du corpus, alimenté par scripts/ingest_*). Périmètre : données OPEN
+# SOURCE sur des PERSONNES PUBLIQUES déjà dans le corpus. Cf. CLAUDE.md.
+# ──────────────────────────────────────────────────────────────────────
+
+
+@mcp.tool()
+def get_entity_sanctions(slug: str) -> dict:
+    """Statut OpenSanctions d'une entité PERSON (P1A).
+
+    Statuts : 'sanctioned', 'pep' (Politically Exposed Person), 'clean'
+    (vérifiée et non listée), 'unknown' (jamais croisée). Inclut les datasets
+    source, les topics ICIJ/FtM et la date de dernière vérification. Données
+    OPEN SOURCE OpenSanctions (CC BY-NC) — catégorie RGPD art. 9/10, usage
+    interne. `clean` ne signifie pas « innocent » mais « absent des listes ».
+    """
+    from osint_lookup import get_entity_sanctions as _impl
+
+    return _impl(slug)
+
+
+@mcp.tool()
+def get_entity_parliament_profile(slug: str) -> dict:
+    """Profil parlementaire suisse d'une entité (P1C), si disponible.
+
+    Inclut parti, canton, conseil (national/États), statut du mandat, rôle.
+    Source : parlament.ch (Open Government Data). `is_swiss_parliament_member`
+    = false si l'entité n'a pas été appariée à un·e parlementaire.
+    """
+    from osint_lookup import get_entity_parliament_profile as _impl
+
+    return _impl(slug)
+
+
+@mcp.tool()
+def get_entity_media_coverage(slug: str, days: int = 30) -> dict:
+    """Couverture médiatique mondiale GDELT d'une entité sur N jours (P2A).
+
+    Volume d'articles, tonalité moyenne (avg_tone, négatif = couverture
+    défavorable), pays sources dominants, thèmes (mots-clés des titres). Utile
+    pour détecter pics de visibilité ou crises. Renvoie le snapshot le plus
+    récent ingéré ; `available=false` si l'entité n'a jamais été interrogée.
+    Le `days` est indicatif (la fenêtre réelle est celle du snapshot stocké).
+    """
+    from osint_lookup import get_entity_media_coverage as _impl
+
+    return _impl(slug, days=days)
+
+
+@mcp.tool()
+def get_entity_portrait_history(slug: str) -> dict:
+    """Chronologie des portraits archivés d'une entité via Wayback (P2B).
+
+    Chaque entrée : année de capture, URL archivée, vignette alignée, pose et
+    confiance détectées. Permet de suivre l'évolution visuelle dans le temps.
+    Vide si aucune capture Wayback n'a été ingérée pour l'entité.
+    """
+    from osint_lookup import get_entity_portrait_history as _impl
+
+    return _impl(slug)
+
+
+@mcp.tool()
+def get_entity_corporate_links(slug: str) -> dict:
+    """Liens entité PERSON → organisations légales via GLEIF (P3A).
+
+    Chaque entrée : nom de l'organisation, LEI, pays, statut. GLEIF est centré
+    organisation : la plupart des personnes n'auront aucun lien (résultat vide
+    = normal, pas une erreur). Données OPEN SOURCE.
+    """
+    from osint_lookup import get_entity_corporate_links as _impl
+
+    return _impl(slug)
+
+
+@mcp.tool()
+def get_entity_offshore_links(slug: str) -> dict:
+    """Connexions ICIJ Offshore Leaks d'une entité PERSON (P3B).
+
+    Vérifie la présence dans Panama/Pandora/Bahamas/Offshore Leaks. Retourne
+    les connexions (nom, dataset, juridiction, node_id). ⚠ Données publiques
+    mais sensibles (présomption d'innocence) — usage journalistique. Un match
+    ne vaut pas accusation : une présence dans ces bases est factuelle, pas
+    une preuve d'illégalité.
+    """
+    from osint_lookup import get_entity_offshore_links as _impl
+
+    return _impl(slug)
+
+
+@mcp.tool()
+def list_entities_by_country(country_code: str, limit: int = 50) -> dict:
+    """Entités PERSON filtrées par pays (code ISO 3166-1 alpha-2).
+
+    Ex. `list_entities_by_country('CH')` → personnalités suisses. Chaque entité :
+    slug, name, country_code, country_name, country_flag, image_count. Pays
+    dérivé de Wikidata P27→P297 (v030).
+    """
+    from osint_lookup import list_entities_by_country as _impl
+
+    return _impl(country_code, limit=limit)
+
+
+@mcp.tool()
+def get_country_stats() -> dict:
+    """Pays représentés dans FACE.ai avec drapeau et effectif (v030).
+
+    Vue géographique de l'espace médiatique couvert par WUDD.ai. Trié par
+    effectif décroissant ; n'inclut que les pays ayant ≥ 1 entité géolocalisée
+    par nationalité.
+    """
+    from osint_lookup import get_country_stats as _impl
+
+    return {"countries": _impl()}
+
+
+# ──────────────────────────────────────────────────────────────────────
 # Ressources MCP (spec §12.4) — exposent l'état du corpus comme des
 # "fichiers" lisibles par l'agent. Une ressource = un GET idempotent
 # qui retourne du texte structuré, sans paramètres au-delà du chemin
