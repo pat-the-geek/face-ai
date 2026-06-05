@@ -64,6 +64,26 @@ describe("CountryFilter", () => {
     );
   });
 
+  it("filtre les chips à la saisie, insensible aux accents", async () => {
+    renderFilter();
+    await waitFor(() => screen.getByText("Suisse"));
+    fireEvent.change(screen.getByLabelText("Filtrer les pays"), {
+      target: { value: "fra" },
+    });
+    expect(screen.getByText("France")).toBeInTheDocument();
+    expect(screen.queryByText("Suisse")).not.toBeInTheDocument();
+  });
+
+  it("Entrée sélectionne le 1er résultat filtré", async () => {
+    const onSelect = vi.fn();
+    renderFilter({ onSelect });
+    await waitFor(() => screen.getByText("Suisse"));
+    const input = screen.getByLabelText("Filtrer les pays");
+    fireEvent.change(input, { target: { value: "sui" } });
+    fireEvent.keyDown(input, { key: "Enter" });
+    expect(onSelect).toHaveBeenCalledWith("CH");
+  });
+
   it("le chip Tous réinitialise le filtre", async () => {
     const onSelect = vi.fn();
     renderFilter({ selected: "CH", onSelect });
