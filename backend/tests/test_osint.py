@@ -154,6 +154,46 @@ def test_portrait_history_empty(client, db):
 #    les données OSINT sensibles (RGPD art. 9/10). Garde-fou durable. ───────
 
 
+def test_sanctions_guardrail_corroboration():
+    """Garde-fou anti-homonymie OpenSanctions : conflit de naissance/pays →
+    rejet ; concordance → accepté ; sans donnée → unverified (ou skip strict)."""
+    import sys
+
+    sys.path.insert(0, "scripts")
+    from ingest_opensanctions import _parse_birth_years, _select_candidate
+
+    assert _parse_birth_years(["1958-08-25", "1958"]) == frozenset({1958})
+
+    pep = {
+        "status": "pep", "topics": ["role.pep"], "datasets": [], "caption": "X",
+        "birth_years": frozenset({1970}), "countries": frozenset({"GB"}),
+    }
+    # Tim Burton (né 1958) vs PEP né 1970 → conflit de naissance → rejet homonyme
+    chosen, ver = _select_candidate([pep], 1958, "US", tol=1, require_corrob=False)
+    assert chosen is None and ver == "homonym_rejected"
+    # Même nom, même année → corroboré par la naissance
+    chosen, ver = _select_candidate([pep], 1970, "US", tol=1, require_corrob=False)
+    assert chosen is pep and ver == "birthdate"
+
+    # POI sans naissance, pays concordant → corroboré par le pays
+    poi = {
+        "status": "pep", "topics": ["poi"], "datasets": [], "caption": "Y",
+        "birth_years": frozenset(), "countries": frozenset({"US"}),
+    }
+    chosen, ver = _select_candidate([poi], None, "US", 1, False)
+    assert chosen is poi and ver == "country"
+
+    # Aucune donnée des deux côtés → écrit 'unverified', mais ignoré en strict
+    bare = {
+        "status": "pep", "topics": ["poi"], "datasets": [], "caption": "Z",
+        "birth_years": frozenset(), "countries": frozenset(),
+    }
+    chosen, ver = _select_candidate([bare], None, None, 1, False)
+    assert chosen is bare and ver == "unverified"
+    chosen, ver = _select_candidate([bare], None, None, 1, True)
+    assert chosen is None and ver == "unverified_skipped"
+
+
 def test_markdown_export_excludes_sensitive_osint(db):
     """L'export Markdown (copiable hors LAN) ne doit JAMAIS contenir les
     statuts OpenSanctions/PEP ni les matches ICIJ, même quand ils sont posés

@@ -186,6 +186,21 @@ OPENSANCTIONS_URL = os.getenv(
     "OPENSANCTIONS_URL",
     "https://data.opensanctions.org/datasets/latest/default/entities.ftm.json",
 )
+# Garde-fou anti-homonymie (le matching par nom seul confond les homonymes,
+# ex. Tim Burton réalisateur vs un PEP du même nom). Après le match par nom, on
+# CORROBORE avec l'année de naissance (±tolérance) et/ou le pays de l'entité
+# (déjà enrichis via Wikidata). Conflit explicite de naissance/pays → match
+# REJETÉ (homonyme). Sans donnée pour corroborer → marqué `unverified` (écrit
+# mais signalé), ou ignoré si REQUIRE_CORROBORATION=true (mode strict).
+OSINT_SANCTIONS_BIRTHYEAR_TOLERANCE = int(
+    os.getenv("OSINT_SANCTIONS_BIRTHYEAR_TOLERANCE", "1")
+)
+OSINT_SANCTIONS_REQUIRE_CORROBORATION = (
+    os.getenv("FACE_AI_SANCTIONS_REQUIRE_CORROBORATION", "false").lower() == "true"
+)
+OSINT_SANCTIONS_MAX_CANDIDATES = int(
+    os.getenv("OSINT_SANCTIONS_MAX_CANDIDATES", "8")
+)
 
 # Parlement suisse (P1C). API OData officielle.
 PARLAMENT_CH_BASE_URL = os.getenv(
