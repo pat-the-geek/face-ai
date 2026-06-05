@@ -140,7 +140,7 @@ function MapWatcher({ onChange }) {
   return null;
 }
 
-export default function MapView() {
+export default function MapView({ country = null }) {
   const navigate = useNavigate();
   // Centre/zoom initiaux restaurés depuis la dernière session de carte (calculé
   // une seule fois). MapContainer ne lit center/zoom qu'au montage — exactement
@@ -167,7 +167,14 @@ export default function MapView() {
     staleTime: 5 * 60_000,
   });
 
-  const entities = useMemo(() => data || [], [data]);
+  // Filtre pays partagé (v030) : ne garde que les entités du pays sélectionné
+  // quand un chip CountryFilter est actif. La carte n'a pas de polygones pays
+  // (uniquement des marqueurs par entité) — on filtre donc les marqueurs.
+  const entities = useMemo(() => {
+    const list = data || [];
+    if (!country) return list;
+    return list.filter((e) => e.country_code === country);
+  }, [data, country]);
   const showPhotos = zoom >= PHOTO_ZOOM;
 
   // Position (jittée pour les points-pays) calculée une fois par entité.

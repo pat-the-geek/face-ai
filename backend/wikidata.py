@@ -43,6 +43,7 @@ PROP_COUNTRY_CITIZENSHIP = "P27"
 PROP_OCCUPATION = "P106"
 PROP_EMPLOYER = "P108"
 PROP_COORDINATE = "P625"  # coordonnée géographique (sur l'item lieu, pas la personne)
+PROP_ISO_3166_1_ALPHA2 = "P297"  # code ISO pays (string, sur l'item pays — v030)
 
 # Enrichissement factuel étendu (v027, bloc A — intérêt légitime art. 6.1.f)
 PROP_GENDER = "P21"
@@ -404,6 +405,43 @@ def _resolve_entity_geo(entity: Entity, statements: dict) -> None:
             return
 
 
+def _statement_string(statements: dict, prop: str) -> str | None:
+    """Première valeur string d'une propriété (ex. P297 = code ISO pays)."""
+    for s in statements.get(prop, []) or []:
+        content = (s.get("value") or {}).get("content")
+        if isinstance(content, str) and content.strip():
+            return content.strip()
+    return None
+
+
+def _resolve_entity_country(
+    entity: Entity, statements: dict, labels: dict | None = None
+) -> None:
+    """Renseigne `entity.country_code` (ISO 3166-1 alpha-2) + `country_name` (FR).
+
+    Source : Wikidata P27 (pays de citoyenneté) → premier QID → P297 (code ISO,
+    string sur l'item pays) + label FR. Un appel réseau supplémentaire (statements
+    du pays) pour lire P297. Aucun pays/P27 → champs laissés NULL. `labels` peut
+    être fourni pour réutiliser un batch déjà résolu (évite un appel label).
+    """
+    entity.country_code = None
+    entity.country_name = None
+
+    nat_qids = _statement_qids(statements, PROP_COUNTRY_CITIZENSHIP)
+    if not nat_qids:
+        return
+    country_qid = nat_qids[0]
+
+    name = (labels or {}).get(country_qid)
+    if not name:
+        name = _resolve_labels([country_qid], lang="fr").get(country_qid)
+    entity.country_name = name
+
+    code = _statement_string(_get_statements(country_qid), PROP_ISO_3166_1_ALPHA2)
+    if code and len(code) == 2 and code.isalpha():
+        entity.country_code = code.upper()
+
+
 def _get_wikidata_label(qid: str, lang: str = "fr") -> str | None:
     """Récupère le label Wikidata principal d'un QID.
 
@@ -636,6 +674,10 @@ def enrich_entity(entity_id: int) -> str:
             # car `entity.nationalities` doit être renseigné pour le repli pays.
             _resolve_entity_geo(entity, statements)
 
+            # Pays ISO pour le filtre/carte (v030). Réutilise le batch `labels`
+            # pour le nom FR ; un appel réseau de plus pour le code P297.
+            _resolve_entity_country(entity, statements, labels)
+
         entity.wikidata_status = "done"
         entity.wikidata_synced_at = datetime.utcnow()
         db.commit()
@@ -739,10 +781,54 @@ def backfill_enrichment(rate_limit: float = 1.0, limit: int | None = None) -> di
         db.close()
 
 
+def backfill_countries(rate_limit: float = 1.0, limit: int | None = None) -> dict:
+    """Renseigne `country_code`/`country_name` (P27→P297) sur les entités enrichies.
+
+    Rétro-alimentation v030 : itère les entités `wikidata_status='done'` avec un
+    QID connu et `country_code` encore NULL, re-fetch les statements via le QID
+    **déjà connu** puis rejoue uniquement `_resolve_entity_country`. Défensif
+    comme `backfill_coordinates`/`backfill_enrichment` : aucune re-recherche de
+    QID, aucune fusion (garde-fou auto-merge gelé non touché). Rate-limité.
+    """
+    db = SessionLocal()
+    try:
+        q = db.query(Entity).filter(
+            Entity.wikidata_status == "done",
+            Entity.wikidata_qid.isnot(None),
+            Entity.country_code.is_(None),
+        )
+        if limit:
+            q = q.limit(limit)
+        rows = q.all()
+        total = len(rows)
+        filled = 0
+        log.info("backfill-countries : %d entités à traiter", total)
+        for i, entity in enumerate(rows, 1):
+            statements = _get_statements(entity.wikidata_qid)
+            _resolve_entity_country(entity, statements)
+            if entity.country_code:
+                filled += 1
+            db.commit()
+            if i % 25 == 0 or i == total:
+                log.info("  %d/%d (pays résolu=%d)", i, total, filled)
+            time.sleep(rate_limit)
+        result = {"total": total, "filled": filled, "unresolved": total - filled}
+        log.info("backfill-countries terminé : %s", result)
+        return result
+    finally:
+        db.close()
+
+
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(description="Outils Wikidata FACE.ai")
+    parser.add_argument(
+        "--backfill-countries",
+        action="store_true",
+        help="Renseigne country_code/country_name (P27→P297) des entités "
+        "enrichies sans pays (v030)",
+    )
     parser.add_argument(
         "--backfill-coordinates",
         action="store_true",
@@ -774,5 +860,7 @@ if __name__ == "__main__":
         backfill_coordinates(rate_limit=args.rate_limit)
     elif args.backfill_enrichment:
         backfill_enrichment(rate_limit=args.rate_limit, limit=args.limit)
+    elif args.backfill_countries:
+        backfill_countries(rate_limit=args.rate_limit, limit=args.limit)
     else:
         parser.print_help()

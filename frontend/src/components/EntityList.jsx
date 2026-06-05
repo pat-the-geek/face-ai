@@ -26,12 +26,13 @@ import EntityRow from "./EntityRow";
  */
 const PAGE_SIZE = 200;
 
-export default function EntityList({ letter, favoritesOnly = false }) {
+export default function EntityList({ letter, favoritesOnly = false, country = null }) {
   const { mode: sortMode } = useSortMode();
   const { data, isLoading, error } = useEntitiesProgressive(
     letter,
     favoritesOnly,
     sortMode,
+    country,
   );
   const { slug: activeSlug } = useParams();
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -50,7 +51,7 @@ export default function EntityList({ letter, favoritesOnly = false }) {
   // Reset visibleCount quand le jeu de données change (filtre, tri).
   useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [letter, favoritesOnly, sortMode]);
+  }, [letter, favoritesOnly, sortMode, country]);
 
   // Infinite scroll : quand le sentinel entre dans le viewport, étend
   // visibleCount de PAGE_SIZE. IntersectionObserver natif, pas de lib.

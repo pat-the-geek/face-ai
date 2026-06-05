@@ -1,7 +1,16 @@
 from datetime import date, datetime
 from typing import Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, computed_field
+
+
+def _flag(code: str | None) -> str | None:
+    """Emoji drapeau depuis un code ISO 3166-1 alpha-2 (None si pas de code)."""
+    if not code:
+        return None
+    from osint_common import country_code_to_flag
+
+    return country_code_to_flag(code)
 
 
 class FaceOut(BaseModel):
@@ -130,6 +139,14 @@ class EntityListItem(BaseModel):
     diversity_score: float
     wiki_thumbnail_url: str | None = None
     is_favorite: bool = False
+    # Filtre pays (v030). country_flag dérivé du code ISO côté serveur.
+    country_code: str | None = None
+    country_name: str | None = None
+
+    @computed_field
+    @property
+    def country_flag(self) -> str | None:
+        return _flag(self.country_code)
 
 
 class EntityMapItem(BaseModel):
@@ -142,6 +159,14 @@ class EntityMapItem(BaseModel):
     thumbnail_url: str | None = None  # portrait corpus aligné, repli wiki_thumbnail_url
     image_count: int = 0
     is_favorite: bool = False
+    # Filtre pays (v030) — permet de filtrer/recentrer la carte par pays.
+    country_code: str | None = None
+    country_name: str | None = None
+
+    @computed_field
+    @property
+    def country_flag(self) -> str | None:
+        return _flag(self.country_code)
     # Description courte pour le tooltip de survol (résumé Wikipédia tronqué,
     # repli sur occupations + nationalité). Tronquée côté serveur pour borner
     # le payload de l'endpoint /entities/map (liste complète des géolocalisés).
@@ -179,7 +204,12 @@ class EntityDetail(EntityListItem):
     religion: list[str] = []
     sexual_orientation: str | None = None
     medical_condition: list[str] = []
-    # is_favorite hérité de EntityListItem
+    # is_favorite + country_code/name/flag hérités de EntityListItem
+    # v030 OSINT — drapeaux compacts pour badges UI ; détail riche via endpoints
+    # /entities/{slug}/sanctions, /parliament, /corporate, /offshore + MCP.
+    sanctions_status: str | None = None  # 'sanctioned'|'pep'|'clean'|'unknown'
+    is_swiss_parliament_member: bool = False
+    icij_match: bool = False
 
 
 class EntitiesResponse(BaseModel):

@@ -1073,6 +1073,13 @@ def list_entities(
     # côté UI, on liste tout dans la sidebar. Plafond haut pour ne pas
     # tronquer (le payload reste léger : ~150 octets/entité = ~2 Mo à 16k).
     # Virtualization a été tentée 4× sans succès — refonte layout requise.
+    country: str | None = Query(
+        None,
+        min_length=2,
+        max_length=2,
+        description="Filtre par pays, code ISO 3166-1 alpha-2 (v030). S'applique "
+        "en parallèle du filtre alphabétique.",
+    ),
     limit: int = Query(50, ge=1, le=20000),
     offset: int = Query(0, ge=0),
     db: Session = Depends(get_db),
@@ -1083,6 +1090,10 @@ def list_entities(
     if favorites_only:
         base = base.where(Entity.is_favorite.is_(True))
         count_base = count_base.where(Entity.is_favorite.is_(True))
+
+    if country is not None:
+        base = base.where(Entity.country_code == country.upper())
+        count_base = count_base.where(Entity.country_code == country.upper())
 
     if letter is not None:
         variants = _letter_variants(letter)
@@ -1218,6 +1229,8 @@ def list_entities_map(db: Session = Depends(get_db)):
                 image_count=e.image_count or 0,
                 is_favorite=bool(e.is_favorite),
                 description=_short_description(e),
+                country_code=e.country_code,
+                country_name=e.country_name,
             )
         )
     return out
@@ -1262,6 +1275,7 @@ def list_letter_distribution(
         "canonical",
         description="`canonical` (défaut, bucket sur la 1re lettre du nom de famille) ou `first_name` (sur le prénom).",
     ),
+    country: str | None = Query(None, min_length=2, max_length=2),
     db: Session = Depends(get_db),
 ):
     """Distribution des entités par lettre initiale (normalisée, accents repliés).
@@ -1276,6 +1290,8 @@ def list_letter_distribution(
     stmt = _exclude_not_person(select(Entity.name))
     if favorites_only:
         stmt = stmt.where(Entity.is_favorite.is_(True))
+    if country is not None:
+        stmt = stmt.where(Entity.country_code == country.upper())
     counts: dict[str, int] = {}
     for (name,) in db.execute(stmt).all():
         if sort_by == "first_name" and "," in name:
@@ -1289,6 +1305,97 @@ def list_letter_distribution(
         "total": sum(counts.values()),
         "letters": dict(sorted(counts.items())),
     }
+
+
+@app.get("/entities/countries")
+def list_countries(db: Session = Depends(get_db)):
+    """Pays représentés dans le corpus (≥ 1 entité), triés par effectif (v030).
+
+    Chaque entrée : `{code, name, flag, count}`. Alimente l'UI CountryFilter
+    (chips à drapeaux) et le tool MCP `get_country_stats`. Déclaré AVANT
+    `/entities/{slug}` pour ne pas être capturé comme un slug.
+    """
+    from osint_lookup import get_country_stats
+
+    return get_country_stats()
+
+
+@app.get("/entities/{slug}/osint")
+def entity_osint(slug: str):
+    """Agrégat OSINT (v030) pour le panneau UI — sections renseignées seulement."""
+    from osint_lookup import get_entity_osint
+
+    result = get_entity_osint(slug)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+
+@app.get("/entities/{slug}/sanctions")
+def entity_sanctions(slug: str):
+    """Statut OpenSanctions (PEP/sanctions) de l'entité (v030, P1A)."""
+    from osint_lookup import get_entity_sanctions
+
+    result = get_entity_sanctions(slug)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+
+@app.get("/entities/{slug}/parliament")
+def entity_parliament(slug: str):
+    """Profil parlementaire suisse de l'entité (v030, P1C)."""
+    from osint_lookup import get_entity_parliament_profile
+
+    result = get_entity_parliament_profile(slug)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+
+@app.get("/entities/{slug}/corporate")
+def entity_corporate(slug: str):
+    """Liens vers des organisations légales (GLEIF) de l'entité (v030, P3A)."""
+    from osint_lookup import get_entity_corporate_links
+
+    result = get_entity_corporate_links(slug)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+
+@app.get("/entities/{slug}/offshore")
+def entity_offshore(slug: str):
+    """Connexions ICIJ Offshore Leaks de l'entité (v030, P3B). Données
+    publiques mais sensibles — usage journalistique."""
+    from osint_lookup import get_entity_offshore_links
+
+    result = get_entity_offshore_links(slug)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+
+@app.get("/entities/{slug}/media-coverage")
+def entity_media_coverage(slug: str, days: int = Query(30, ge=1, le=365)):
+    """Couverture médiatique mondiale GDELT de l'entité (v030, P2A)."""
+    from osint_lookup import get_entity_media_coverage
+
+    result = get_entity_media_coverage(slug, days=days)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
+
+
+@app.get("/entities/{slug}/portrait-history")
+def entity_portrait_history(slug: str):
+    """Chronologie des portraits archivés (Wayback) de l'entité (v030, P2B)."""
+    from osint_lookup import get_entity_portrait_history
+
+    result = get_entity_portrait_history(slug)
+    if "error" in result:
+        raise HTTPException(status_code=404, detail=result["error"])
+    return result
 
 
 @app.get("/entities/search", response_model=SearchResponse)
@@ -1562,6 +1669,11 @@ def _entity_detail(entity: Entity) -> EntityDetail:
         religion=_split_pipe(entity.religion),
         sexual_orientation=entity.sexual_orientation,
         medical_condition=_split_pipe(entity.medical_condition),
+        country_code=entity.country_code,
+        country_name=entity.country_name,
+        sanctions_status=entity.sanctions_status,
+        is_swiss_parliament_member=bool(entity.is_swiss_parliament_member),
+        icij_match=bool(entity.icij_match),
     )
 
 
