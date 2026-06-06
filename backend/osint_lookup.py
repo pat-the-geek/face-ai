@@ -49,7 +49,11 @@ def get_entity_sanctions(slug: str) -> dict:
             "sanctions_status": e.sanctions_status or "unknown",
             "datasets": detail.get("datasets", []),
             "topics": detail.get("topics", []),
-            "match_score": detail.get("score"),
+            "match_score": detail.get("score") or detail.get("name_score"),
+            # Niveau de corroboration anti-homonymie (garde-fou) : 'birthdate' /
+            # 'country' = match confirmé par la naissance/le pays ; 'unverified'
+            # = match par nom non corroboré (à auditer). Cf. ingest_opensanctions.
+            "verification": detail.get("verification"),
             "last_checked": detail.get("last_checked")
             or (e.sanctions_synced_at.isoformat() if e.sanctions_synced_at else None),
         }
