@@ -146,7 +146,9 @@ export function useFoule({ canvasRef }) {
 
   const prospective = useCallback((nCells) => {
     const { w, h, dpr } = zoneRef.current;
-    const grid = computeGrid(nCells, w, h, { fill: effectsRef.current.mosaic });
+    // Plein cadre partout : pas de bande noire latérale (le `cover` du dessin
+    // évite la déformation des visages dans des cellules non carrées).
+    const grid = computeGrid(nCells, w, h, { fill: true });
     const bucket = sizeBucket(Math.ceil(Math.max(grid.cellW, grid.cellH) * dpr));
     return { grid, bucket };
   }, []);
@@ -272,9 +274,18 @@ export function useFoule({ canvasRef }) {
     ctx.fillRect(rect.x, rect.y, rect.w, rect.h);
   }, []);
 
+  // Dessin « cover » : remplit la cellule sans déformer (recadre l'excédent).
+  // Permet le plein cadre (pas de bande noire) tout en gardant des visages nets.
   const drawBitmap = useCallback((ctx, rect, bm) => {
     try {
-      ctx.drawImage(bm, rect.x, rect.y, rect.w, rect.h);
+      const bw = bm.width || rect.w;
+      const bh = bm.height || rect.h;
+      const scale = Math.max(rect.w / bw, rect.h / bh);
+      const sw = rect.w / scale;
+      const sh = rect.h / scale;
+      const sx = (bw - sw) / 2;
+      const sy = (bh - sh) / 2;
+      ctx.drawImage(bm, sx, sy, sw, sh, rect.x, rect.y, rect.w, rect.h);
       return true;
     } catch {
       return false;
@@ -608,9 +619,7 @@ export function useFoule({ canvasRef }) {
     if (ctx) ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     zoneRef.current = { w, h, dpr };
     if (shownRef.current > 0) {
-      gridRef.current = computeGrid(shownRef.current, w, h, {
-        fill: effectsRef.current.mosaic,
-      });
+      gridRef.current = computeGrid(shownRef.current, w, h, { fill: true });
     }
     waveRef.current = null;
     if (effectsRef.current.mosaic) resampleMosaic();
@@ -649,16 +658,9 @@ export function useFoule({ canvasRef }) {
     }
   }, [paused]);
 
-  // Bascule mosaïque → la grille change de mode (plein cadre ↔ carré).
+  // Bascule mosaïque → seul l'échantillonnage de teinte change (la grille est
+  // déjà en plein cadre en permanence).
   useEffect(() => {
-    const { w, h } = zoneRef.current;
-    if (shownRef.current > 0 && w > 0) {
-      gridRef.current = computeGrid(shownRef.current, w, h, {
-        fill: effects.mosaic,
-      });
-    }
-    waveRef.current = null;
-    animRef.current.clear();
     if (effects.mosaic) resampleMosaic();
     fullRepaintRef.current = true;
   }, [effects.mosaic, resampleMosaic]);
