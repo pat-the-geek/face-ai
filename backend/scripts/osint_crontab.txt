@@ -1,11 +1,17 @@
 # FACE.ai — Planification des ingestions OSINT (v030)
 # Données OPEN SOURCE, personnes publiques du corpus uniquement. Cf. CLAUDE.md.
 #
-# Installer côté hôte (le `-T` évite l'allocation d'un TTY en cron) :
-#   crontab -e   puis coller les lignes ci-dessous (adapter le chemin du repo).
+# ⚠ MÉCANISME INSTALLÉ = launchd (pas cron). Les agents sont versionnés dans
+#   scripts/launchd/ai.face.osint.*.plist et chargés dans ~/Library/LaunchAgents/.
+#   launchd relance au réveil si la machine dormait et évite le souci de Full
+#   Disk Access de /usr/sbin/cron. Wrapper : scripts/osint-run.sh.
+#   (Re)charger : launchctl load -w ~/Library/LaunchAgents/ai.face.osint.*.plist
+#   Décharger   : launchctl unload   ~/Library/LaunchAgents/ai.face.osint.*.plist
+#   Lancer à la demande : launchctl kickstart gui/$(id -u)/ai.face.osint.<task>
+#   Logs : /tmp/faceai-osint-launchd.log + backend/logs/ingest_{source}_{date}.log
 #
+# Les lignes crontab ci-dessous restent une ALTERNATIVE (si tu préfères cron).
 # Toutes les commandes tournent dans le conteneur `api` (qui a database/config).
-# Logs : backend/logs/ingest_{source}_{date}.log (monté via le bind static/data).
 
 REPO=/Users/patrickostertag/Documents/DataForIA/FACE.ai
 
