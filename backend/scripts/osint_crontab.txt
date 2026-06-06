@@ -24,15 +24,7 @@ REPO=/Users/patrickostertag/Documents/DataForIA/FACE.ai
 # ── P2A GDELT (couverture médiatique) — hebdomadaire, top 100 entités.
 0 6 * * 1   cd $REPO && docker compose exec -T api python scripts/ingest_gdelt.py --limit 100
 
-# ── P2B Wayback (portraits archivés) — mensuel, échantillon.
-0 4 15 * *  cd $REPO && docker compose exec -T api python scripts/ingest_wayback_portraits.py --limit 50
-
-# ── P3A GLEIF (organisations légales) — mensuel.
-0 3 5 * *   cd $REPO && docker compose exec -T api python scripts/ingest_gleif.py --limit 200
-
-# ── P3B ICIJ Offshore Leaks — mensuel. Mode CSV recommandé (fiable) :
-#    télécharger l'export officiel data.icij.org dans /data/icij/ d'abord.
-0 4 5 * *   cd $REPO && docker compose exec -T api python scripts/ingest_icij.py --csv /data/icij
+# Note : GLEIF, ICIJ et Wayback ont été supprimés en v031 (non viables).
 
 # Alternative launchd (macOS) : créer des .plist équivalents sous
 # ~/Library/LaunchAgents/ (cf. ai.face.backup-full déjà en place pour le modèle).

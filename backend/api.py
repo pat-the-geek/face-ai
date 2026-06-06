@@ -1353,46 +1353,12 @@ def entity_parliament(slug: str):
     return result
 
 
-@app.get("/entities/{slug}/corporate")
-def entity_corporate(slug: str):
-    """Liens vers des organisations légales (GLEIF) de l'entité (v030, P3A)."""
-    from osint_lookup import get_entity_corporate_links
-
-    result = get_entity_corporate_links(slug)
-    if "error" in result:
-        raise HTTPException(status_code=404, detail=result["error"])
-    return result
-
-
-@app.get("/entities/{slug}/offshore")
-def entity_offshore(slug: str):
-    """Connexions ICIJ Offshore Leaks de l'entité (v030, P3B). Données
-    publiques mais sensibles — usage journalistique."""
-    from osint_lookup import get_entity_offshore_links
-
-    result = get_entity_offshore_links(slug)
-    if "error" in result:
-        raise HTTPException(status_code=404, detail=result["error"])
-    return result
-
-
 @app.get("/entities/{slug}/media-coverage")
 def entity_media_coverage(slug: str, days: int = Query(30, ge=1, le=365)):
     """Couverture médiatique mondiale GDELT de l'entité (v030, P2A)."""
     from osint_lookup import get_entity_media_coverage
 
     result = get_entity_media_coverage(slug, days=days)
-    if "error" in result:
-        raise HTTPException(status_code=404, detail=result["error"])
-    return result
-
-
-@app.get("/entities/{slug}/portrait-history")
-def entity_portrait_history(slug: str):
-    """Chronologie des portraits archivés (Wayback) de l'entité (v030, P2B)."""
-    from osint_lookup import get_entity_portrait_history
-
-    result = get_entity_portrait_history(slug)
     if "error" in result:
         raise HTTPException(status_code=404, detail=result["error"])
     return result
@@ -1673,7 +1639,6 @@ def _entity_detail(entity: Entity) -> EntityDetail:
         country_name=entity.country_name,
         sanctions_status=entity.sanctions_status,
         is_swiss_parliament_member=bool(entity.is_swiss_parliament_member),
-        icij_match=bool(entity.icij_match),
     )
 
 

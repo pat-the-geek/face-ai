@@ -54,7 +54,7 @@ def _seed(db):
         Entity(
             name="Trump, Donald", slug="trump-donald", wikidata_status="done",
             country_code="US", country_name="États-Unis", article_count=10,
-            sanctions_status="pep", is_swiss_parliament_member=False, icij_match=False,
+            sanctions_status="pep", is_swiss_parliament_member=False,
             sanctions_detail=json.dumps(
                 {"topics": ["role.pep"], "verification": "birthdate"}
             ),
@@ -149,12 +149,6 @@ def test_media_coverage_absent(client, db):
     assert data["available"] is False
 
 
-def test_portrait_history_empty(client, db):
-    _seed(db)
-    data = client.get("/entities/trump-donald/portrait-history").json()
-    assert data["count"] == 0
-
-
 # ── Conformité : frontière LAN — les surfaces hors LAN n'exposent jamais
 #    les données OSINT sensibles (RGPD art. 9/10). Garde-fou durable. ───────
 
@@ -200,9 +194,9 @@ def test_sanctions_guardrail_corroboration():
 
 
 def test_markdown_export_excludes_sensitive_osint(db):
-    """L'export Markdown (copiable hors LAN) ne doit JAMAIS contenir les
-    statuts OpenSanctions/PEP ni les matches ICIJ, même quand ils sont posés
-    sur l'entité. Empêche une régression future (ajout incident d'un champ)."""
+    """L'export Markdown (copiable hors LAN) ne doit JAMAIS contenir le statut
+    OpenSanctions/PEP, même quand il est posé sur l'entité. Empêche une
+    régression future (ajout incident d'un champ sensible à l'export)."""
     import bibliography
     from database import Entity
 
@@ -211,11 +205,7 @@ def test_markdown_export_excludes_sensitive_osint(db):
         country_code="RU", country_name="Russie",
         sanctions_status="sanctioned",
         sanctions_detail=json.dumps(
-            {"topics": ["sanction"], "datasets": ["us_ofac_sdn"]}
-        ),
-        icij_match=True,
-        icij_detail=json.dumps(
-            [{"name": "SECRET OFFSHORE LTD", "dataset": "Panama Papers"}]
+            {"topics": ["sanction"], "datasets": ["us_ofac_sdn"], "verification": "birthdate"}
         ),
     )
     db.add(e)
@@ -223,5 +213,5 @@ def test_markdown_export_excludes_sensitive_osint(db):
 
     md = (bibliography.entity_markdown(e.id) or "").lower()
     assert "risky" in md  # sanity : l'entité est bien rendue
-    for forbidden in ("sanction", "ofac", "panama", "offshore", "icij", "pep"):
+    for forbidden in ("sanction", "ofac", "pep"):
         assert forbidden not in md, f"fuite art. 9/10 hors LAN : '{forbidden}'"

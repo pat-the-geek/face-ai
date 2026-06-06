@@ -172,7 +172,7 @@ def iter_corpus_persons(db, *, require_qid=False, only_missing=None):
 
     Exclut les tombstones `wikidata_status='not_person'`. Filtres optionnels :
     - `require_qid` : seulement celles ayant un `wikidata_qid` (utile pour les
-      sources adossées à Wikidata : Commons, Wayback).
+      sources adossées à Wikidata, ex. Commons).
     - `only_missing` : nom d'une colonne ; ne renvoie que les entités dont
       cette colonne est NULL (rejouabilité / idempotence des backfills).
 
@@ -213,12 +213,11 @@ def ingest_external_image(
     source_provider: str,
     caption: str | None = None,
     copyright_text: str | None = None,
-    capture_year: int | None = None,
     session=None,
 ) -> dict:
     """Télécharge et ingère une image OPEN DATA comme image d'une entité.
 
-    Générique (Wikimedia Commons, Wayback, parlament.ch…) : pose
+    Générique (Wikimedia Commons, parlament.ch…) : pose
     `source_provider` (≠ 'wudd' → audit /audit renforcé, pas de cross-check
     texte↔image), `article_id=None`. Le pipeline standard (face_processor +
     identity_audit) qualifie ensuite, et §5.4 purge silencieusement si aucun
@@ -260,7 +259,6 @@ def ingest_external_image(
             analysis_status="pending",
             association_status="auto",
             source_provider=source_provider,
-            capture_year=capture_year,
             http_status=r.status_code,
         )
         db.add(img)

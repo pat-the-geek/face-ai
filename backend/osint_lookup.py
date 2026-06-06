@@ -14,7 +14,7 @@ import json
 
 from sqlalchemy import func, select
 
-from database import Entity, EntityGdeltCoverage, Image, SessionLocal
+from database import Entity, EntityGdeltCoverage, SessionLocal
 from osint_common import country_code_to_flag
 
 
@@ -86,46 +86,6 @@ def get_entity_parliament_profile(slug: str) -> dict:
         db.close()
 
 
-# ── P3A — GLEIF (organisations légales) ──────────────────────────────────────
-
-def get_entity_corporate_links(slug: str) -> dict:
-    db = SessionLocal()
-    try:
-        e = _get_person(db, slug)
-        if e is None:
-            return {"error": f"entité '{slug}' introuvable", "slug": slug}
-        links = _load_json(e.gleif_data, [])
-        return {
-            "slug": slug,
-            "name": e.name,
-            "count": len(links),
-            "results": links,
-        }
-    finally:
-        db.close()
-
-
-# ── P3B — ICIJ Offshore Leaks ────────────────────────────────────────────────
-
-def get_entity_offshore_links(slug: str) -> dict:
-    db = SessionLocal()
-    try:
-        e = _get_person(db, slug)
-        if e is None:
-            return {"error": f"entité '{slug}' introuvable", "slug": slug}
-        links = _load_json(e.icij_detail, [])
-        return {
-            "slug": slug,
-            "name": e.name,
-            "icij_match": bool(e.icij_match),
-            "count": len(links),
-            "results": links,
-            "note": "Données ICIJ publiques mais sensibles — usage journalistique.",
-        }
-    finally:
-        db.close()
-
-
 # ── P2A — GDELT media coverage ───────────────────────────────────────────────
 
 def get_entity_media_coverage(slug: str, days: int = 30) -> dict:
@@ -156,49 +116,7 @@ def get_entity_media_coverage(slug: str, days: int = 30) -> dict:
             "article_count": snap.article_count,
             "avg_tone": snap.avg_tone,
             "top_countries": _load_json(snap.top_countries, []),
-            "top_themes": _load_json(snap.top_themes, []),
             "fetched_at": snap.fetched_at.isoformat() if snap.fetched_at else None,
-        }
-    finally:
-        db.close()
-
-
-# ── P2B — Wayback portrait history ───────────────────────────────────────────
-
-def get_entity_portrait_history(slug: str) -> dict:
-    db = SessionLocal()
-    try:
-        e = _get_person(db, slug)
-        if e is None:
-            return {"error": f"entité '{slug}' introuvable", "slug": slug}
-        rows = db.execute(
-            select(Image)
-            .where(
-                Image.entity_id == e.id,
-                Image.capture_year.is_not(None),
-            )
-            .order_by(Image.capture_year.asc())
-        ).scalars().all()
-        history = []
-        for img in rows:
-            fa = img.face_analysis
-            history.append(
-                {
-                    "year": img.capture_year,
-                    "archived_url": img.source_url,
-                    "aligned_url": f"/static/aligned/{img.id}.jpg"
-                    if img.aligned_path
-                    else None,
-                    "pose": fa.pose if fa else None,
-                    "confidence": fa.confidence if fa else None,
-                    "source_provider": img.source_provider,
-                }
-            )
-        return {
-            "slug": slug,
-            "name": e.name,
-            "count": len(history),
-            "results": history,
         }
     finally:
         db.close()
@@ -274,21 +192,9 @@ def get_entity_osint(slug: str) -> dict:
     if parl.get("is_swiss_parliament_member"):
         out["parliament"] = parl
 
-    corp = get_entity_corporate_links(slug)
-    if corp.get("count"):
-        out["corporate"] = corp
-
-    off = get_entity_offshore_links(slug)
-    if off.get("icij_match"):
-        out["offshore"] = off  # sensible (art. 9/10)
-
     mc = get_entity_media_coverage(slug)
     if mc.get("available"):
         out["media_coverage"] = mc
-
-    ph = get_entity_portrait_history(slug)
-    if ph.get("count"):
-        out["portrait_history"] = ph
 
     return out
 

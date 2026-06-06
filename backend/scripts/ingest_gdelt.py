@@ -2,9 +2,9 @@
 """P2A — GDELT : couverture médiatique mondiale. API DOC 2.0 publique (open).
 
 Pour une sélection d'entités (favoris + plus actives par défaut), interroge
-GDELT sur N jours : volume d'articles, tonalité moyenne, pays sources dominants,
-thèmes (mots-clés des titres). Écrit un snapshot dans `entity_gdelt_coverage`.
-Agrégat de couverture, pas de contenu — open data, personnes publiques.
+GDELT sur N jours : volume d'articles, tonalité moyenne, pays sources dominants.
+Écrit un snapshot dans `entity_gdelt_coverage`. Agrégat de couverture, pas de
+contenu — open data, personnes publiques.
 
 Respecte ~1 req/sec (config GDELT_RATE_LIMIT_SECONDS). Idempotent au sens où on
 empile des snapshots horodatés (le lecteur prend le plus récent).
@@ -18,7 +18,6 @@ Cron (hebdomadaire) :
 """
 import argparse
 import json
-import re
 import sys
 import time
 from collections import Counter
@@ -37,12 +36,6 @@ from osint_common import get_logger, make_session  # noqa: E402
 from sqlalchemy import select  # noqa: E402
 
 log = get_logger("gdelt")
-
-_STOPWORDS = {
-    "the", "and", "for", "with", "from", "that", "this", "les", "des", "une",
-    "dans", "pour", "sur", "par", "avec", "son", "ses", "à", "de", "la", "le",
-    "un", "en", "au", "du", "il", "elle", "qui", "que", "new", "says", "after",
-}
 
 
 def _query_name(entity: Entity) -> str:
@@ -103,16 +96,6 @@ def _fetch_avg_tone(session, query: str, days: int) -> float | None:
         return None
 
 
-def _top_themes(articles: list[dict], n: int = 8) -> list[dict]:
-    words = Counter()
-    for a in articles:
-        for w in re.findall(r"[a-zA-ZàâäéèêëïîôöùûüçÀÂÄÉÈ]{3,}", a.get("title") or ""):
-            wl = w.lower()
-            if wl not in _STOPWORDS:
-                words[wl] += 1
-    return [{"theme": w, "count": c} for w, c in words.most_common(n)]
-
-
 def _select_entities(db, args) -> list[Entity]:
     if args.slug:
         e = db.scalar(select(Entity).where(Entity.slug == args.slug))
@@ -164,7 +147,6 @@ def main() -> None:
                     [{"country": c, "count": n} for c, n in countries.most_common(8)],
                     ensure_ascii=False,
                 ),
-                top_themes=json.dumps(_top_themes(articles), ensure_ascii=False),
             )
             db.add(snap)
             db.commit()

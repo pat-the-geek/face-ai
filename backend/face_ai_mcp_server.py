@@ -1068,47 +1068,6 @@ def get_entity_media_coverage(slug: str, days: int = 30) -> dict:
 
 
 @mcp.tool()
-def get_entity_portrait_history(slug: str) -> dict:
-    """Chronologie des portraits archivés d'une entité via Wayback (P2B).
-
-    Chaque entrée : année de capture, URL archivée, vignette alignée, pose et
-    confiance détectées. Permet de suivre l'évolution visuelle dans le temps.
-    Vide si aucune capture Wayback n'a été ingérée pour l'entité.
-    """
-    from osint_lookup import get_entity_portrait_history as _impl
-
-    return _impl(slug)
-
-
-@mcp.tool()
-def get_entity_corporate_links(slug: str) -> dict:
-    """Liens entité PERSON → organisations légales via GLEIF (P3A).
-
-    Chaque entrée : nom de l'organisation, LEI, pays, statut. GLEIF est centré
-    organisation : la plupart des personnes n'auront aucun lien (résultat vide
-    = normal, pas une erreur). Données OPEN SOURCE.
-    """
-    from osint_lookup import get_entity_corporate_links as _impl
-
-    return _impl(slug)
-
-
-@mcp.tool()
-def get_entity_offshore_links(slug: str) -> dict:
-    """Connexions ICIJ Offshore Leaks d'une entité PERSON (P3B).
-
-    Vérifie la présence dans Panama/Pandora/Bahamas/Offshore Leaks. Retourne
-    les connexions (nom, dataset, juridiction, node_id). ⚠ Données publiques
-    mais sensibles (présomption d'innocence) — usage journalistique. Un match
-    ne vaut pas accusation : une présence dans ces bases est factuelle, pas
-    une preuve d'illégalité.
-    """
-    from osint_lookup import get_entity_offshore_links as _impl
-
-    return _impl(slug)
-
-
-@mcp.tool()
 def list_entities_by_country(country_code: str, limit: int = 50) -> dict:
     """Entités PERSON filtrées par pays (code ISO 3166-1 alpha-2).
 
