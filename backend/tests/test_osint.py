@@ -55,6 +55,9 @@ def _seed(db):
             name="Trump, Donald", slug="trump-donald", wikidata_status="done",
             country_code="US", country_name="États-Unis", article_count=10,
             sanctions_status="pep", is_swiss_parliament_member=False, icij_match=False,
+            sanctions_detail=json.dumps(
+                {"topics": ["role.pep"], "verification": "birthdate"}
+            ),
         ),
         Entity(
             name="Macron, Emmanuel", slug="macron-emmanuel", wikidata_status="done",
@@ -125,7 +128,9 @@ def test_sanctions_endpoint(client, db):
     _seed(db)
     r = client.get("/entities/trump-donald/sanctions")
     assert r.status_code == 200
-    assert r.json()["sanctions_status"] == "pep"
+    body = r.json()
+    assert body["sanctions_status"] == "pep"
+    assert body["verification"] == "birthdate"  # garde-fou surfacé
     # 404 sur tombstone
     assert client.get("/entities/openai/sanctions").status_code == 404
 

@@ -35,6 +35,32 @@ function SanctionBadge({ status }) {
   );
 }
 
+/**
+ * Niveau de corroboration anti-homonymie (garde-fou OpenSanctions) : le match
+ * est-il confirmé par la naissance/le pays, ou seulement par le nom ?
+ */
+function VerificationTag({ verification }) {
+  const map = {
+    birthdate: { label: "✓ naissance", cls: "text-[var(--text-secondary)]" },
+    country: { label: "✓ pays", cls: "text-[var(--text-secondary)]" },
+    unverified: {
+      label: "⚠ non vérifié",
+      cls: "text-[#b8860b] font-semibold",
+      title: "Match par nom non corroboré (ni naissance ni pays) — à auditer.",
+    },
+  };
+  const m = map[verification];
+  if (!m) return null;
+  return (
+    <span
+      className={`text-[10px] font-mono ${m.cls}`}
+      title={m.title || "Match corroboré par la donnée biographique."}
+    >
+      {m.label}
+    </span>
+  );
+}
+
 export default function OsintPanel({ slug }) {
   const { data } = useQuery({
     queryKey: ["entity-osint", slug],
@@ -177,6 +203,7 @@ export default function OsintPanel({ slug }) {
                 OpenSanctions
               </span>
               <SanctionBadge status={sanctions.sanctions_status} />
+              <VerificationTag verification={sanctions.verification} />
               {sanctions.topics?.length > 0 && (
                 <span className="text-xs font-mono text-[var(--text-secondary)]">
                   {sanctions.topics.join(" · ")}
