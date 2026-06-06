@@ -206,10 +206,9 @@ class EntityDetail(EntityListItem):
     medical_condition: list[str] = []
     # is_favorite + country_code/name/flag hérités de EntityListItem
     # v030 OSINT — drapeaux compacts pour badges UI ; détail riche via endpoints
-    # /entities/{slug}/sanctions, /parliament, /corporate, /offshore + MCP.
+    # /entities/{slug}/sanctions, /parliament, /media-coverage, /osint + MCP.
     sanctions_status: str | None = None  # 'sanctioned'|'pep'|'clean'|'unknown'
     is_swiss_parliament_member: bool = False
-    icij_match: bool = False
 
 
 class EntitiesResponse(BaseModel):

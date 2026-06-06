@@ -70,21 +70,12 @@ export default function OsintPanel({ slug }) {
   });
 
   if (!data) return null;
-  const {
-    country,
-    media_coverage: mc,
-    portrait_history: ph,
-    corporate,
-    sanctions,
-    parliament,
-    offshore,
-  } = data;
+  const { country, media_coverage: mc, sanctions, parliament } = data;
 
-  const hasAny =
-    country || mc || ph || corporate || sanctions || parliament || offshore;
+  const hasAny = country || mc || sanctions || parliament;
   if (!hasAny) return null;
 
-  const sensitive = sanctions || offshore;
+  const sensitive = sanctions;
 
   return (
     <div className="pt-3 mt-3 border-t divider">
@@ -135,56 +126,6 @@ export default function OsintPanel({ slug }) {
               </span>
             )}
           </div>
-          {mc.top_themes?.length > 0 && (
-            <div className="mt-1 flex flex-wrap gap-1">
-              {mc.top_themes.slice(0, 8).map((t) => (
-                <span
-                  key={t.theme}
-                  className="px-2 py-0.5 text-[10px] font-mono border divider text-[var(--text-secondary)]"
-                >
-                  {t.theme}
-                </span>
-              ))}
-            </div>
-          )}
-        </Section>
-      )}
-
-      {ph && (
-        <Section title="🕰 Évolution du portrait (Wayback)">
-          <div className="flex gap-3 overflow-x-auto pb-1">
-            {ph.results.map((p, i) => (
-              <div key={i} className="shrink-0 text-center">
-                {p.aligned_url ? (
-                  <img
-                    src={p.aligned_url}
-                    alt={String(p.year)}
-                    className="w-16 h-16 object-cover border divider"
-                  />
-                ) : (
-                  <div className="w-16 h-16 border divider bg-bg-secondary" />
-                )}
-                <div className="mt-1 text-[10px] font-mono text-[var(--text-secondary)]">
-                  {p.year}
-                </div>
-              </div>
-            ))}
-          </div>
-        </Section>
-      )}
-
-      {corporate && (
-        <Section title="🏢 Organisations légales (GLEIF)">
-          <ul className="space-y-1 text-sm">
-            {corporate.results.slice(0, 6).map((c) => (
-              <li key={c.lei} className="flex items-baseline gap-2">
-                <span>{c.legalName}</span>
-                <span className="text-xs font-mono text-[var(--text-secondary)]">
-                  {c.lei} {c.country ? `· ${c.country}` : ""}
-                </span>
-              </li>
-            ))}
-          </ul>
         </Section>
       )}
 
@@ -209,27 +150,6 @@ export default function OsintPanel({ slug }) {
                   {sanctions.topics.join(" · ")}
                 </span>
               )}
-            </div>
-          )}
-
-          {offshore && (
-            <div className="mt-2 text-sm">
-              <span className="text-[10px] font-mono uppercase tracking-wider text-[var(--text-secondary)] mr-2">
-                ICIJ Offshore Leaks
-              </span>
-              <span>{offshore.count} connexion{offshore.count > 1 ? "s" : ""}</span>
-              <ul className="mt-1 space-y-0.5 text-xs font-mono text-[var(--text-secondary)]">
-                {offshore.results.slice(0, 5).map((o, i) => (
-                  <li key={i}>
-                    {o.name}
-                    {o.dataset ? ` · ${o.dataset}` : ""}
-                    {o.jurisdiction ? ` · ${o.jurisdiction}` : ""}
-                  </li>
-                ))}
-              </ul>
-              <div className="mt-1 text-[10px] italic text-[var(--text-secondary)]">
-                Présence factuelle dans une base publique — ne vaut pas accusation.
-              </div>
             </div>
           )}
         </div>

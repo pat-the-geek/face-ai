@@ -216,20 +216,6 @@ GDELT_API_URL = os.getenv(
 GDELT_RATE_LIMIT_SECONDS = float(os.getenv("GDELT_RATE_LIMIT_SECONDS", "5.0"))
 GDELT_DEFAULT_DAYS = int(os.getenv("GDELT_DEFAULT_DAYS", "30"))
 
-# Wayback Machine (P2B). CDX API + politeness delay.
-WAYBACK_CDX_URL = os.getenv(
-    "WAYBACK_CDX_URL", "https://web.archive.org/cdx/search/cdx"
-)
-WAYBACK_RATE_LIMIT_SECONDS = float(os.getenv("WAYBACK_RATE_LIMIT_SECONDS", "2.0"))
-
-# GLEIF (P3A). API REST publique v1.
-GLEIF_API_URL = os.getenv("GLEIF_API_URL", "https://api.gleif.org/api/v1")
-
-# ICIJ Offshore Leaks (P3B). API publique de recherche.
-ICIJ_API_URL = os.getenv(
-    "ICIJ_API_URL", "https://offshoreleaks.icij.org/api/v1"
-)
-
 # User-Agent commun aux requêtes OSINT (politesse + contact, comme Wikimedia).
 OSINT_USER_AGENT = os.getenv(
     "OSINT_USER_AGENT", "FACE.ai/1.0 (veille open-data; contact@ok-ia.ch)"

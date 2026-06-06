@@ -87,9 +87,9 @@ class Entity(Base):
     # DÉCISION PÉRIMÈTRE 2026-06-05 (Patrick Ostertag) : ces colonnes étendent
     # FACE.ai vers de la veille OSINT. Cadre explicite : UNIQUEMENT des données
     # OPEN SOURCE concernant des PERSONNES PUBLIQUES déjà dans le corpus (aucune
-    # inférence, aucune source privée, aucun ciblage d'inconnus). Plusieurs de
-    # ces catégories (sanctions/PEP, casier ICIJ) relèvent du RGPD art. 9/10 :
-    # revue de conformité recommandée avant diffusion hors LAN. Cf. CLAUDE.md.
+    # inférence, aucune source privée, aucun ciblage d'inconnus). Le statut
+    # sanctions/PEP relève du RGPD art. 9/10 : revue de conformité recommandée
+    # avant diffusion hors LAN. Cf. CLAUDE.md.
 
     # OpenSanctions (P1A) — sanctions / PEP / criminels (open data CC BY-NC)
     sanctions_status = Column(Text)  # 'sanctioned' | 'pep' | 'clean' | 'unknown'
@@ -100,15 +100,6 @@ class Entity(Base):
     parliament_ch_id = Column(Integer)
     parliament_ch_data = Column(Text)  # JSON : {party, canton, active, role, council}
     is_swiss_parliament_member = Column(Boolean, server_default="0")
-
-    # GLEIF (P3A) — organisations légales liées (open data)
-    gleif_data = Column(Text)  # JSON : [{lei, legalName, country, status}]
-    gleif_synced_at = Column(DateTime)
-
-    # ICIJ Offshore Leaks (P3B) — Panama/Pandora/Bahamas (open data, sensible)
-    icij_match = Column(Boolean, server_default="0")
-    icij_detail = Column(Text)  # JSON : [{name, dataset, jurisdiction, node_id}]
-    icij_synced_at = Column(DateTime)
 
     # Centroïde d'identité ArcFace (v014, spec §11.2)
     identity_centroid = Column(LargeBinary)  # 2048 octets (512 floats L2-norm)
@@ -210,9 +201,6 @@ class Image(Base):
     identity_match_score = Column(Float)  # cosine distance au centroïde de l'entité
 
     association_status = Column(Text, server_default="auto")
-    # v030 (Wayback, P2B) : année de la capture archivée quand l'image provient
-    # de la Wayback Machine (source_provider='wayback_machine'). NULL sinon.
-    capture_year = Column(Integer)
     scraped_at = Column(DateTime, server_default=func.current_timestamp())
 
     article = relationship("Article", back_populates="images")
@@ -325,7 +313,6 @@ class EntityGdeltCoverage(Base):
     article_count = Column(Integer)
     avg_tone = Column(Float)
     top_countries = Column(Text)  # JSON : [{country, count}]
-    top_themes = Column(Text)  # JSON : [{theme, count}]
     fetched_at = Column(DateTime, server_default=func.current_timestamp())
 
 

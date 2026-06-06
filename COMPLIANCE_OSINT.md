@@ -26,16 +26,17 @@ deux sources (voir §2).
 | Wikimedia Commons | portraits libres | ordinaire | intérêt légitime |
 | parlament.ch | mandat parlementaire | ordinaire (fonction publique) | OGD suisse |
 | GDELT | couverture médiatique agrégée | ordinaire | intérêt légitime |
-| Wayback | portraits archivés | ordinaire | intérêt légitime |
-| GLEIF | organisations légales | ordinaire | registre public |
 | **OpenSanctions** | **statut PEP / sanctions / criminel** | **art. 9 + art. 10** | **dérogation tracée** |
-| **ICIJ Offshore Leaks** | **présence dans fuites offshore** | **art. 9/10 + présomption d'innocence** | **dérogation tracée** |
 
-Les deux dernières lignes **sortent du régime d'intérêt légitime**. Le
-propriétaire a choisi de les **stocker et exposer en LAN** en connaissance de
-cause. Atténuations : personnes publiques uniquement + données déjà publiques
-reprises sans inférence (proche de l'art. 9.2.e « manifestement rendues
-publiques », sans l'établir automatiquement).
+La dernière ligne **sort du régime d'intérêt légitime**. Le propriétaire a
+choisi de la **stocker et exposer en LAN** en connaissance de cause.
+Atténuations : personnes publiques uniquement + données déjà publiques reprises
+sans inférence (proche de l'art. 9.2.e « manifestement rendues publiques »,
+sans l'établir automatiquement) + garde-fou anti-homonymie (corroboration
+naissance/pays).
+
+> **Supprimées en v031 (2026-06-06)** : GLEIF, ICIJ Offshore Leaks et Wayback,
+> non viables (0 résultat / source inadaptée / API morte). N'existent plus.
 
 > **Action recommandée** : revue de conformité art. 9/10 (fondement 9.2.e
 > et/ou 9.2.j recherche/archivage) **avant toute diffusion élargie** ou mise
@@ -43,8 +44,8 @@ publiques », sans l'établir automatiquement).
 
 ## 3. Frontière LAN — invariant technique
 
-**Les données OSINT sensibles (OpenSanctions/PEP, ICIJ) ne franchissent JAMAIS
-la frontière réseau.** Elles sont consultables uniquement en LAN (API/MCP/UI
+**La donnée OSINT sensible (statut OpenSanctions/PEP) ne franchit JAMAIS la
+frontière réseau.** Elle est consultable uniquement en LAN (API/MCP/UI
 Tailscale, ports liés à `100.72.122.51`, jamais `0.0.0.0`).
 
 Surfaces **hors LAN** et leur traitement :
@@ -57,8 +58,8 @@ Surfaces **hors LAN** et leur traitement :
 | Fiche de veille Discord (`synthesis_card.py`) | hors LAN | **exclues** (faits publics + signaux corpus seulement) |
 
 Garde-fou automatisé : `tests/test_osint.py::test_markdown_export_excludes_sensitive_osint`
-échoue si une régression fait fuiter `sanction`/`ofac`/`panama`/`icij`/`pep`
-dans l'export Markdown. Étendre ce test si un nouvel exporter hors LAN est créé.
+échoue si une régression fait fuiter `sanction`/`ofac`/`pep` dans l'export
+Markdown. Étendre ce test si un nouvel exporter hors LAN est créé.
 
 ## 4. Checklist avant tout nouveau chantier OSINT
 
@@ -74,8 +75,8 @@ dans l'export Markdown. Étendre ce test si un nouvel exporter hors LAN est cré
 ## 5. Effacement / rectification
 
 Les champs OSINT sont des colonnes nullables sur `entities` (+ table
-`entity_gdelt_coverage`). Pour purger une donnée sensible d'une entité :
-`UPDATE entities SET sanctions_status=NULL, sanctions_detail=NULL,
-icij_match=0, icij_detail=NULL WHERE slug='…';`. Les scripts d'ingestion sont
-idempotents et réécrivent au prochain run — pour exclure durablement une
-personne, retirer sa correspondance source ou la sortir du corpus.
+`entity_gdelt_coverage`). Pour purger la donnée sensible d'une entité :
+`UPDATE entities SET sanctions_status=NULL, sanctions_detail=NULL WHERE
+slug='…';`. Les scripts d'ingestion sont idempotents et réécrivent au prochain
+run — pour exclure durablement une personne, retirer sa correspondance source
+ou la sortir du corpus.

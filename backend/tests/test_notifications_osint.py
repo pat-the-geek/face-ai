@@ -34,7 +34,6 @@ def test_media_tone_scenario(db, monkeypatch):
             article_count=120,
             avg_tone=-8.5,  # < seuil -5
             top_countries=json.dumps([{"country": "US", "count": 40}]),
-            top_themes="[]",
         )
     )
     # Snapshot positif → ne doit PAS déclencher
@@ -44,7 +43,7 @@ def test_media_tone_scenario(db, monkeypatch):
     db.add(
         EntityGdeltCoverage(
             entity_id=e2.id, period_end=date(2026, 5, 31),
-            article_count=120, avg_tone=2.0, top_countries="[]", top_themes="[]",
+            article_count=120, avg_tone=2.0, top_countries="[]",
         )
     )
     db.commit()
