@@ -9,6 +9,7 @@ import ColorModeToggle from "./components/ColorModeToggle";
 import CountryFilter from "./components/CountryFilter";
 import EntityList from "./components/EntityList";
 import FontScaler from "./components/FontScaler";
+import FoulePanel from "./components/FoulePanel";
 import GalleryPanel from "./components/GalleryPanel";
 import GlobalSearch from "./components/GlobalSearch";
 import MapView from "./components/MapView";
@@ -27,8 +28,14 @@ export default function App() {
   const onMapRoute = location.pathname === "/carte";
   const onTrendsRoute = location.pathname === "/tendances";
   const onCompareRoute = location.pathname.startsWith("/compare/");
+  const onFouleRoute = location.pathname === "/foule";
   const fullWidthRoute =
-    onAuditRoute || onAdminRoute || onMapRoute || onTrendsRoute || onCompareRoute;
+    onAuditRoute ||
+    onAdminRoute ||
+    onMapRoute ||
+    onTrendsRoute ||
+    onCompareRoute ||
+    onFouleRoute;
 
   const { data: flagged } = useQuery({
     queryKey: ["flagged"],
@@ -103,6 +110,23 @@ export default function App() {
             Tendances
           </Link>
           <Link
+            to="/foule"
+            onClick={() => {
+              // Vrai plein écran demandé DANS le geste utilisateur (comme le
+              // mode immersif de WUDD) : Safari ne l'accorde qu'ainsi. Desktop only.
+              if (typeof window !== "undefined" && window.innerWidth >= 768) {
+                document.documentElement.requestFullscreen?.().catch(() => {});
+              }
+            }}
+            className={`transition-colors ${
+              onFouleRoute
+                ? "text-accent"
+                : "text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            }`}
+          >
+            Foule
+          </Link>
+          <Link
             to="/admin"
             className={`transition-colors ${
               onAdminRoute
@@ -153,6 +177,7 @@ export default function App() {
             <Route path="/admin" element={<AdminPanel />} />
             <Route path="/carte" element={<MapView country={country} />} />
             <Route path="/tendances" element={<ShareOfVoice />} />
+            <Route path="/foule" element={<FoulePanel />} />
             <Route
               path="/compare/:slugA/:slugB"
               element={<SplitScreen />}
